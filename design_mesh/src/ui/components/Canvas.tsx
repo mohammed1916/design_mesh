@@ -1,5 +1,4 @@
-// src/ui/components/Canvas.tsx
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 
 // Types for symbols
 export type SymbolType = {
@@ -8,7 +7,7 @@ export type SymbolType = {
   y: number;
   width: number;
   height: number;
-  type: "rect" | "image";
+  type: "rect" | "circle" | "polygon" | "image";
   src?: string; // for images
   favorite?: boolean;
 };
@@ -32,7 +31,6 @@ const Canvas: React.FC<CanvasProps> = ({
 }) => {
   const dragOffset = useRef<{ x: number; y: number } | null>(null);
 
-  // Handle mouse down for selection and drag
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if (!selectMode) return;
     setSelectedId(id);
@@ -45,24 +43,47 @@ const Canvas: React.FC<CanvasProps> = ({
     }
   };
 
-  // Handle mouse move for drag
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!selectMode || !selectedId || !dragOffset.current) return;
     setSymbols((prev) =>
       prev.map((s) =>
         s.id === selectedId
-          ? { ...s, x: e.clientX - dragOffset.current!.x, y: e.clientY - dragOffset.current!.y }
+          ? {
+              ...s,
+              x: e.clientX - dragOffset.current!.x,
+              y: e.clientY - dragOffset.current!.y,
+            }
           : s
       )
     );
   };
 
-  // Handle mouse up to stop drag
   const handleMouseUp = () => {
     dragOffset.current = null;
   };
 
-  // Render symbols as SVG
+  const toggleFavorite = (id: string) => {
+    setSymbols((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, favorite: !s.favorite } : s
+      )
+    );
+    onAddFavorite(id); // still notifies parent
+  };
+
+  const renderFavoriteStar = (symbol: SymbolType) => (
+    <text
+      x={symbol.x + symbol.width - 14}
+      y={symbol.y + 16}
+      fontSize="16"
+      fill={symbol.favorite ? "gold" : "#888"}
+      style={{ cursor: "pointer", userSelect: "none" }}
+      onClick={() => toggleFavorite(symbol.id)}
+    >
+      ★
+    </text>
+  );
+
   return (
     <svg
       width={600}
@@ -71,37 +92,72 @@ const Canvas: React.FC<CanvasProps> = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
     >
-      {symbols.map((symbol) =>
-        symbol.type === "rect" ? (
-          <rect
-            key={symbol.id}
-            x={symbol.x}
-            y={symbol.y}
-            width={symbol.width}
-            height={symbol.height}
-            fill={symbol.favorite ? "gold" : "#90caf9"}
-            stroke={selectedId === symbol.id ? "#1976d2" : "#333"}
-            strokeWidth={selectedId === symbol.id ? 3 : 1}
-            onMouseDown={(e) => handleMouseDown(e, symbol.id)}
-            style={{ cursor: selectMode ? "move" : "pointer" }}
-            onDoubleClick={() => onAddFavorite(symbol.id)}
-          />
-        ) : symbol.type === "image" && symbol.src ? (
-          <image
-            key={symbol.id}
-            x={symbol.x}
-            y={symbol.y}
-            width={symbol.width}
-            height={symbol.height}
-            href={symbol.src}
-            style={{ cursor: selectMode ? "move" : "pointer" }}
-            onMouseDown={(e) => handleMouseDown(e, symbol.id)}
-            onDoubleClick={() => onAddFavorite(symbol.id)}
-          />
-        ) : null
-      )}
+      {symbols.map((symbol) => {
+        const isSelected = symbol.id === selectedId;
+        const stroke = isSelected ? "#1976d2" : "#333";
+        const strokeWidth = isSelected ? 3 : 1;
+
+        const sharedProps = {
+          key: symbol.id,
+          stroke,
+          strokeWidth,
+          style: { cursor: selectMode ? "move" : "pointer" },
+          onMouseDown: (e: React.MouseEvent) => handleMouseDown(e, symbol.id),
+        };
+
+        return (
+          <g key={symbol.id}>
+            {symbol.type === "rect" && (
+              <rect
+                {...sharedProps}
+                x={symbol.x}
+                y={symbol.y}
+                width={symbol.width}
+                height={symbol.height}
+                fill={symbol.favorite ? "gold" : "#90caf9"}
+              />
+            )}
+
+            {symbol.type === "circle" && (
+              <circle
+                {...sharedProps}
+                cx={symbol.x + symbol.width / 2}
+                cy={symbol.y + symbol.height / 2}
+                r={Math.min(symbol.width, symbol.height) / 2}
+                fill={symbol.favorite ? "gold" : "#a5d6a7"}
+              />
+            )}
+
+            {symbol.type === "polygon" && (
+              <polygon
+                {...sharedProps}
+                points={`
+                  ${symbol.x + symbol.width / 2},${symbol.y}
+                  ${symbol.x + symbol.width},${symbol.y + symbol.height}
+                  ${symbol.x},${symbol.y + symbol.height}
+                `}
+                fill={symbol.favorite ? "gold" : "#ffcc80"}
+              />
+            )}
+
+            {symbol.type === "image" && symbol.src && (
+              <image
+                {...sharedProps}
+                x={symbol.x}
+                y={symbol.y}
+                width={symbol.width}
+                height={symbol.height}
+                href={symbol.src}
+              />
+            )}
+
+            {/* Add favorite star */}
+            {renderFavoriteStar(symbol)}
+          </g>
+        );
+      })}
     </svg>
   );
 };
 
-export default Canvas; 
+export default Canvas;
