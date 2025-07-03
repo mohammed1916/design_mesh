@@ -1,3 +1,4 @@
+// src/ui/components/Canvas.tsx
 import React, { useRef, useState } from "react";
 
 // Types for symbols
