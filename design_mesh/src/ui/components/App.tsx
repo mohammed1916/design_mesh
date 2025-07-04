@@ -134,7 +134,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     <Theme system="express" scale="medium" color="light">
       <div className="container">
         {/* Toolbar */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "center" }}>
           <div onClick={() => handleInsertShape("rect")}>
             <svg width={40} height={40}>
               <rect x={5} y={10} width={30} height={20} fill="#90caf9" stroke="#333" strokeWidth={2} />
@@ -156,8 +156,8 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
             <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload} />
           </label>
 
-          <Button onClick={() => setSelectMode((m) => !m)} variant={selectMode ? "primary" : "secondary"}>
-            {selectMode ? "Select Mode: ON" : "OFF"}
+          <Button size="s" variant={selectMode ? "primary" : "secondary"} onClick={() => setSelectMode(!selectMode)}>
+            {selectMode ? "Done" : "Edit"}
           </Button>
         </div>
 
