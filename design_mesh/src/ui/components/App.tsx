@@ -1,13 +1,15 @@
+// imports
 import "@spectrum-web-components/theme/express/scale-medium.js";
 import "@spectrum-web-components/theme/express/theme-light.js";
 import { Button } from "@swc-react/button";
 import { Theme } from "@swc-react/theme";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { DocumentSandboxApi } from "../../models/DocumentSandboxApi";
 import "./App.css";
 import { AddOnSDKAPI } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
 import Canvas, { SymbolType } from "./Canvas";
 
+// component
 const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
   const [symbols, setSymbols] = useState<SymbolType[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -85,6 +87,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     const updated = [...favorites, fav];
     setFavorites(updated);
     await addOnUISdk.instance.clientStorage.setItem("favorites", updated);
+    setNewTag(""); // clear input
   };
 
   const handleRemoveFavorite = async (id: string) => {
@@ -125,11 +128,12 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   }, []);
 
   const filteredFavorites = tagFilter === "All" ? favorites : favorites.filter((f) => f.tag === tagFilter);
-  const uniqueTags = Array.from(new Set(favorites.map((f) => f.tag ?? "Untagged")));
+  const uniqueTags = useMemo(() => Array.from(new Set(favorites.map((f) => f.tag ?? "Untagged"))), [favorites]);
 
   return (
     <Theme system="express" scale="medium" color="light">
       <div className="container">
+        {/* Toolbar */}
         <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
           <div onClick={() => handleInsertShape("rect")}>
             <svg width={40} height={40}>
@@ -155,21 +159,9 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           <Button onClick={() => setSelectMode((m) => !m)} variant={selectMode ? "primary" : "secondary"}>
             {selectMode ? "Select Mode: ON" : "OFF"}
           </Button>
-
-          <input
-            placeholder="Tag for next favorite"
-            value={newTag}
-            onChange={(e) => setNewTag(e.target.value)}
-            style={{
-              padding: "6px 8px",
-              borderRadius: "4px",
-              border: "1px solid #ccc",
-              fontSize: "14px",
-              minWidth: "150px",
-            }}
-          />
         </div>
 
+        {/* Canvas */}
         <Canvas
           symbols={symbols}
           setSymbols={setSymbols}
@@ -179,13 +171,35 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           selectMode={selectMode}
         />
 
+        {/* Tag input and Add to Favorites */}
+        {selectMode && selectedId && (
+          <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "center" }}>
+            <input
+              placeholder="Enter tag for selected symbol"
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              style={{
+                padding: "6px 8px",
+                borderRadius: "4px",
+                border: "1px solid #ccc",
+                fontSize: "14px",
+                minWidth: "200px",
+              }}
+            />
+            <Button variant="primary" onClick={() => handleAddFavorite(selectedId!)}>
+              ⭐ Add to Favorites
+            </Button>
+          </div>
+        )}
+
+        {/* Favorites */}
         <div style={{ marginTop: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <h4>Favorites</h4>
             <Button size="s" variant={editFavorites ? "primary" : "secondary"} onClick={() => setEditFavorites(!editFavorites)}>
               {editFavorites ? "Done" : "Edit"}
             </Button>
-            <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
+            <select title="Filter Favorites" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
               <option value="All">All</option>
               {uniqueTags.map((tag) => (
                 <option key={tag} value={tag}>{tag}</option>
