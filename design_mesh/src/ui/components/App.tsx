@@ -6,6 +6,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { DocumentSandboxApi } from "../../models/DocumentSandboxApi";
 import { AddOnSDKAPI } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
 import CanvasSection, { SymbolType } from "./res/CanvasSection";
+import { v4 as uuidv4 } from 'uuid';
 
 const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
   const [symbols, setSymbols] = useState<SymbolType[]>([]);
@@ -16,12 +17,12 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   const [newTag, setNewTag] = useState("");
   const [tagFilter, setTagFilter] = useState("All");
 
-  const uuidv4 = () =>
-    "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
+  // const uuidv4 = () =>
+  //   "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+  //     const r = (Math.random() * 16) | 0;
+  //     const v = c === "x" ? r : (r & 0x3) | 0x8;
+  //     return v.toString(16);
+  //   });
 
   async function svgToPngBlob(svg: string, width: number, height: number): Promise<Blob> {
     return new Promise((resolve) => {
