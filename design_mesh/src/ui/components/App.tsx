@@ -202,16 +202,58 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
         )}
 
         <div className="mt-12">
-          <div className="flex items-center gap-2">
-            <h4 className="text-lg font-semibold">Inventory</h4>
-            <Button size="s" variant={editInventory ? "primary" : "secondary"} onClick={() => setEditInventory(!editInventory)}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              background: "#f8f9fa",
+              borderRadius: 12,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              padding: "18px 24px 12px 24px",
+              marginBottom: 12,
+            }}
+          >
+            <h4
+              style={{
+                fontSize: 20,
+                fontWeight: 700,
+                margin: 0,
+                color: "#222",
+                letterSpacing: 0.2,
+              }}
+            >
+              Inventory
+            </h4>
+            <Button
+              size="s"
+              variant={editInventory ? "primary" : "secondary"}
+              onClick={() => setEditInventory(!editInventory)}
+              style={{
+                borderRadius: 8,
+                fontWeight: 600,
+                minWidth: 64,
+                marginLeft: 8,
+              }}
+            >
               {editInventory ? "Done" : "Edit"}
             </Button>
             <select
               title="Filter Inventory"
               value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value)}
-              className="border border-gray-300 rounded px-2 py-1 text-sm"
+              style={{
+                border: "1px solid #d1d5db",
+                borderRadius: 8,
+                padding: "6px 16px",
+                fontSize: 15,
+                background: "#fff",
+                color: "#333",
+                marginLeft: 12,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                outline: "none",
+                transition: "border 0.2s",
+              }}
             >
               <option value="All">All</option>
               {uniqueTags.map((tag) => (
