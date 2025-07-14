@@ -17,13 +17,6 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   const [newTag, setNewTag] = useState("");
   const [tagFilter, setTagFilter] = useState("All");
 
-  // const uuidv4 = () =>
-  //   "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-  //     const r = (Math.random() * 16) | 0;
-  //     const v = c === "x" ? r : (r & 0x3) | 0x8;
-  //     return v.toString(16);
-  //   });
-
   async function svgToPngBlob(svg: string, width: number, height: number): Promise<Blob> {
     return new Promise((resolve) => {
       const img = new Image();
