@@ -1,4 +1,3 @@
-// FIle: design_mesh/src/ui/components/App.tsx
 import "@spectrum-web-components/theme/express/scale-medium.js";
 import "@spectrum-web-components/theme/express/theme-light.js";
 import { Button } from "@swc-react/button";
@@ -12,8 +11,8 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   const [symbols, setSymbols] = useState<SymbolType[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
-  const [favorites, setFavorites] = useState<(SymbolType & { tag?: string })[]>([]);
-  const [editFavorites, setEditFavorites] = useState(false);
+  const [inventory, setInventory] = useState<(SymbolType & { tag?: string })[]>([]);
+  const [editInventory, setEditInventory] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [tagFilter, setTagFilter] = useState("All");
 
@@ -39,12 +38,10 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     });
   }
 
-  // Insert the symbol into the Canvas (React state)
   const insertSymbolToCanvas = (symbol: SymbolType) => {
     setSymbols((prev) => [...prev, symbol]);
   };
 
-  // Insert the symbol into the Document (Adobe API)
   const insertSymbolToDocument = async (symbol: SymbolType) => {
     if (symbol.type === "image" && symbol.src) {
       const blob = await (await fetch(symbol.src)).blob();
@@ -64,12 +61,10 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     }
   };
 
-  // Combined function
   const insertSymbolToCanvasAndDocument = async (symbol: SymbolType) => {
     insertSymbolToCanvas(symbol);
     await insertSymbolToDocument(symbol);
   };
-
 
   const handleInsertShape = async (type: "rect" | "circle" | "polygon") => {
     const newSymbol: SymbolType = {
@@ -83,8 +78,8 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     await insertSymbolToCanvasAndDocument(newSymbol);
   };
 
-  const handleInsertFavorite = async (fav: SymbolType) => {
-    const newSymbol: SymbolType = { ...fav, id: uuidv4(), x: fav.x + 20, y: fav.y + 20, favorite: false };
+  const handleInsertInventory = async (inv: SymbolType) => {
+    const newSymbol: SymbolType = { ...inv, id: uuidv4(), x: inv.x + 20, y: inv.y + 20, inventory: false };
     await insertSymbolToCanvasAndDocument(newSymbol);
   };
 
@@ -108,33 +103,33 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     reader.readAsDataURL(file);
   };
 
-  const handleAddFavorite = async (id: string) => {
+  const handleAddInventory = async (id: string) => {
     const item = symbols.find((s) => s.id === id);
-    if (!item || favorites.some((f) => f.id === id)) return;
-    const fav = { ...item, favorite: true, tag: newTag.trim() || "Untagged" };
-    const updated = [...favorites, fav];
-    setFavorites(updated);
-    await addOnUISdk.instance.clientStorage.setItem("favorites", updated);
+    if (!item || inventory.some((f) => f.id === id)) return;
+    const inv = { ...item, inventory: true, tag: newTag.trim() || "Untagged" };
+    const updated = [...inventory, inv];
+    setInventory(updated);
+    await addOnUISdk.instance.clientStorage.setItem("inventory", updated);
     setNewTag("");
   };
 
-  const handleRemoveFavorite = async (id: string) => {
-    const updated = favorites.filter((f) => f.id !== id);
-    setFavorites(updated);
-    await addOnUISdk.instance.clientStorage.setItem("favorites", updated);
+  const handleRemoveInventory = async (id: string) => {
+    const updated = inventory.filter((f) => f.id !== id);
+    setInventory(updated);
+    await addOnUISdk.instance.clientStorage.setItem("inventory", updated);
   };
 
-  const loadFavorites = async () => {
-    const stored = (await addOnUISdk.instance.clientStorage.getItem("favorites")) as SymbolType[] | undefined;
-    if (stored) setFavorites(stored);
+  const loadInventory = async () => {
+    const stored = (await addOnUISdk.instance.clientStorage.getItem("inventory")) as SymbolType[] | undefined;
+    if (stored) setInventory(stored);
   };
 
   useEffect(() => {
-    loadFavorites();
+    loadInventory();
   }, []);
 
-  const filteredFavorites = tagFilter === "All" ? favorites : favorites.filter((f) => f.tag === tagFilter);
-  const uniqueTags = useMemo(() => Array.from(new Set(favorites.map((f) => f.tag ?? "Untagged"))), [favorites]);
+  const filteredInventory = tagFilter === "All" ? inventory : inventory.filter((f) => f.tag === tagFilter);
+  const uniqueTags = useMemo(() => Array.from(new Set(inventory.map((f) => f.tag ?? "Untagged"))), [inventory]);
 
   return (
     <Theme system="express" scale="medium" color="light">
@@ -176,7 +171,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           setSymbols={setSymbols}
           selectedId={selectedId}
           setSelectedId={setSelectedId}
-          onAddFavorite={handleAddFavorite}
+          onAddInventory={handleAddInventory}
           selectMode={selectMode}
           onInsertSymbol={insertSymbolToDocument}
         />
@@ -195,20 +190,20 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                 minWidth: "200px",
               }}
             />
-            <Button variant="primary" onClick={() => handleAddFavorite(selectedId!)}>
-              ⭐ Add to Favorites
+            <Button variant="primary" onClick={() => handleAddInventory(selectedId!)}>
+              📦 Add to Inventory
             </Button>
           </div>
         )}
 
         <div className="mt-12">
           <div className="flex items-center gap-2">
-            <h4 className="text-lg font-semibold">Favorites</h4>
-            <Button size="s" variant={editFavorites ? "primary" : "secondary"} onClick={() => setEditFavorites(!editFavorites)}>
-              {editFavorites ? "Done" : "Edit"}
+            <h4 className="text-lg font-semibold">Inventory</h4>
+            <Button size="s" variant={editInventory ? "primary" : "secondary"} onClick={() => setEditInventory(!editInventory)}>
+              {editInventory ? "Done" : "Edit"}
             </Button>
             <select
-              title="Filter Favorites"
+              title="Filter Inventory"
               value={tagFilter}
               onChange={(e) => setTagFilter(e.target.value)}
               className="border border-gray-300 rounded px-2 py-1 text-sm"
@@ -223,27 +218,27 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           </div>
 
           <div className="flex gap-2 flex-wrap mt-2">
-            {filteredFavorites.map((fav) => (
-              <div key={fav.id} className="border border-gray-300 p-1 relative">
-                <div onClick={() => handleInsertFavorite(fav)} className="cursor-pointer">
-                  {fav.type === "rect" ? (
+            {filteredInventory.map((inv) => (
+              <div key={inv.id} className="border border-gray-300 p-1 relative">
+                <div onClick={() => handleInsertInventory(inv)} className="cursor-pointer">
+                  {inv.type === "rect" ? (
                     <svg width={30} height={20}>
                       <rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" />
                     </svg>
-                  ) : fav.type === "circle" ? (
+                  ) : inv.type === "circle" ? (
                     <svg width={30} height={30}>
                       <circle cx={15} cy={15} r={13} fill="gold" stroke="#333" />
                     </svg>
-                  ) : fav.type === "polygon" ? (
+                  ) : inv.type === "polygon" ? (
                     <svg width={30} height={30}>
                       <polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" />
                     </svg>
-                  ) : fav.type === "image" && fav.src ? (
-                    <img src={fav.src} width={30} height={30} alt="Favorite" />
+                  ) : inv.type === "image" && inv.src ? (
+                    <img src={inv.src} width={30} height={30} alt="Inventory" />
                   ) : null}
                 </div>
-                {editFavorites && (
-                  <button onClick={() => handleRemoveFavorite(fav.id)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+                {editInventory && (
+                  <button onClick={() => handleRemoveInventory(inv.id)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
                     ×
                   </button>
                 )}

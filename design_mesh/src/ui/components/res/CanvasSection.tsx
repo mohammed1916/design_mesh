@@ -9,7 +9,7 @@ export type SymbolType = {
   height: number;
   type: "rect" | "circle" | "polygon" | "image";
   src?: string;
-  favorite?: boolean;
+  inventory?: boolean;
 };
 
 interface CanvasProps {
@@ -17,7 +17,7 @@ interface CanvasProps {
   setSymbols: React.Dispatch<React.SetStateAction<SymbolType[]>>;
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
-  onAddFavorite: (id: string) => void;
+  onAddInventory: (id: string) => void;
   onInsertSymbol: (symbol: SymbolType) => void;
   selectMode: boolean;
 }
@@ -27,7 +27,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
   setSymbols,
   selectedId,
   setSelectedId,
-  onAddFavorite,
+  onAddInventory,
   onInsertSymbol,
   selectMode,
 }) => {
@@ -64,25 +64,25 @@ const CanvasSection: React.FC<CanvasProps> = ({
     dragOffset.current = null;
   };
 
-  const toggleFavorite = (id: string) => {
+  const toggleInventory = (id: string) => {
     setSymbols((prev) =>
       prev.map((s) =>
-        s.id === id ? { ...s, favorite: !s.favorite } : s
+        s.id === id ? { ...s, inventory: !s.inventory } : s
       )
     );
-    onAddFavorite(id);
+    onAddInventory(id);
   };
 
-  const renderFavoriteStar = (symbol: SymbolType) => (
+  const renderInventoryStar = (symbol: SymbolType) => (
     <text
       x={symbol.x + symbol.width - 14}
       y={symbol.y + 16}
       fontSize="16"
-      fill={symbol.favorite ? "gold" : "#888"}
+      fill={symbol.inventory ? "gold" : "#888"}
       style={{ cursor: "pointer", userSelect: "none" }}
       onClick={(e) => {
         e.stopPropagation();
-        toggleFavorite(symbol.id);
+        toggleInventory(symbol.id);
       }}
     >
       ★
@@ -122,7 +122,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
                 y={symbol.y}
                 width={symbol.width}
                 height={symbol.height}
-                fill={symbol.favorite ? "gold" : "#90caf9"}
+                fill={symbol.inventory ? "gold" : "#90caf9"}
               />
             )}
             {symbol.type === "circle" && (
@@ -131,7 +131,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
                 cx={symbol.x + symbol.width / 2}
                 cy={symbol.y + symbol.height / 2}
                 r={Math.min(symbol.width, symbol.height) / 2}
-                fill={symbol.favorite ? "gold" : "#a5d6a7"}
+                fill={symbol.inventory ? "gold" : "#a5d6a7"}
               />
             )}
             {symbol.type === "polygon" && (
@@ -142,7 +142,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
                   ${symbol.x + symbol.width},${symbol.y + symbol.height}
                   ${symbol.x},${symbol.y + symbol.height}
                 `}
-                fill={symbol.favorite ? "gold" : "#ffcc80"}
+                fill={symbol.inventory ? "gold" : "#ffcc80"}
               />
             )}
             {symbol.type === "image" && symbol.src && (
@@ -159,7 +159,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
                 }}
               />
             )}
-            {renderFavoriteStar(symbol)}
+            {renderInventoryStar(symbol)}
           </g>
         );
       })}
