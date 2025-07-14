@@ -18,6 +18,7 @@ interface CanvasProps {
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
   onAddFavorite: (id: string) => void;
+  onInsertSymbol: (symbol: SymbolType) => void;
   selectMode: boolean;
 }
 
@@ -27,20 +28,25 @@ const Canvas: React.FC<CanvasProps> = ({
   selectedId,
   setSelectedId,
   onAddFavorite,
+  onInsertSymbol,
   selectMode,
 }) => {
   const dragOffset = useRef<{ x: number; y: number } | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
-    if (!selectMode) return;
-    setSelectedId(id);
     const symbol = symbols.find((s) => s.id === id);
-    if (symbol) {
-      dragOffset.current = {
-        x: e.clientX - symbol.x,
-        y: e.clientY - symbol.y,
-      };
+    if (!symbol) return;
+
+    if (!selectMode) {
+      onInsertSymbol(symbol); // 🔧 This was missing
+      return;
     }
+
+    setSelectedId(id);
+    dragOffset.current = {
+      x: e.clientX - symbol.x,
+      y: e.clientY - symbol.y,
+    };
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -68,7 +74,7 @@ const Canvas: React.FC<CanvasProps> = ({
         s.id === id ? { ...s, favorite: !s.favorite } : s
       )
     );
-    onAddFavorite(id); // still notifies parent
+    onAddFavorite(id);
   };
 
   const renderFavoriteStar = (symbol: SymbolType) => (
@@ -78,7 +84,10 @@ const Canvas: React.FC<CanvasProps> = ({
       fontSize="16"
       fill={symbol.favorite ? "gold" : "#888"}
       style={{ cursor: "pointer", userSelect: "none" }}
-      onClick={() => toggleFavorite(symbol.id)}
+      onClick={(e) => {
+        e.stopPropagation(); // prevent interfering with drag or insert
+        toggleFavorite(symbol.id);
+      }}
     >
       ★
     </text>
@@ -151,7 +160,6 @@ const Canvas: React.FC<CanvasProps> = ({
               />
             )}
 
-            {/* Add favorite star */}
             {renderFavoriteStar(symbol)}
           </g>
         );

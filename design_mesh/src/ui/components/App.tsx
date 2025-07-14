@@ -59,6 +59,29 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     await addOnUISdk.app.document.addImage(blob);
   };
 
+
+  const handleInsertSymbol = async (symbol: SymbolType) => {
+    const newSymbol = { ...symbol, id: uuidv4(), x: symbol.x + 20, y: symbol.y + 20 };
+    setSymbols((prev) => [...prev, newSymbol]);
+
+    if (symbol.type === "image" && symbol.src) {
+      const blob = await (await fetch(symbol.src)).blob();
+      await addOnUISdk.app.document.addImage(blob);
+    } else {
+      let svg = "";
+      if (symbol.type === "rect")
+        svg = `<rect width="${symbol.width}" height="${symbol.height}" fill="#90caf9" stroke="#333" stroke-width="2" />`;
+      else if (symbol.type === "circle")
+        svg = `<circle cx="${symbol.width / 2}" cy="${symbol.height / 2}" r="${symbol.width / 2 - 2}" fill="#a5d6a7" stroke="#333" stroke-width="2" />`;
+      else if (symbol.type === "polygon")
+        svg = `<polygon points="50,10 90,90 10,90" fill="#ffcc80" stroke="#333" stroke-width="2" />`;
+
+      const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}">${svg}</svg>`;
+      const blob = await svgToPngBlob(fullSvg, symbol.width, symbol.height);
+      await addOnUISdk.app.document.addImage(blob);
+    }
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -176,6 +199,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           setSelectedId={setSelectedId}
           onAddFavorite={handleAddFavorite}
           selectMode={selectMode}
+          onInsertSymbol={handleInsertSymbol}
         />
 
         {/* Tag input and Add to Favorites */}
