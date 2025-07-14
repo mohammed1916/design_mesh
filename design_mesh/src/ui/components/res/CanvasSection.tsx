@@ -20,7 +20,46 @@ interface CanvasProps {
   onAddInventory: (id: string) => void;
   onInsertSymbol: (symbol: SymbolType) => void;
   selectMode: boolean;
+  setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
 }
+
+// CanvasControls component for Edit/Done and Clear buttons
+const CanvasControls: React.FC<{
+  selectMode: boolean;
+  setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
+  setSymbols: React.Dispatch<React.SetStateAction<SymbolType[]>>;
+}> = ({ selectMode, setSelectMode, setSymbols }) => (
+  <div style={{ display: "flex", gap: 10, alignItems: "center", padding: 16 }}>
+    <button
+      style={{
+        padding: "6px 16px",
+        borderRadius: 4,
+        border: 0,
+        background: selectMode ? "#1976d2" : "#eee",
+        color: selectMode ? "#fff" : "#333",
+        fontWeight: 500,
+        cursor: "pointer",
+      }}
+      onClick={() => setSelectMode((prev) => !prev)}
+    >
+      {selectMode ? "Done" : "Edit"}
+    </button>
+    <button
+      style={{
+        padding: "6px 16px",
+        borderRadius: 4,
+        border: 0,
+        background: "#eee",
+        color: "#333",
+        fontWeight: 500,
+        cursor: "pointer",
+      }}
+      onClick={() => setSymbols([])}
+    >
+      Clear
+    </button>
+  </div>
+);
 
 const CanvasSection: React.FC<CanvasProps> = ({
   symbols,
@@ -30,6 +69,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
   onAddInventory,
   onInsertSymbol,
   selectMode,
+  setSelectMode,
 }) => {
   const dragOffset = useRef<{ x: number; y: number } | null>(null);
   const [open, setOpen] = useState(true);
@@ -104,14 +144,15 @@ const CanvasSection: React.FC<CanvasProps> = ({
         <AnimatePresence initial={false}>
           {open && (
             <motion.div
-              key="canvas"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="overflow-hidden"
+            key="canvas"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
             >
               <div className="p-4 bg-white rounded-b-xl border-t">
+            <CanvasControls selectMode={selectMode} setSelectMode={setSelectMode} setSymbols={setSymbols} />
                 <svg
                   width={600}
                   height={400}

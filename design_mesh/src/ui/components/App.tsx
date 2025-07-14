@@ -167,14 +167,6 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
               <Button size="m">Upload</Button>
               <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload} />
             </label>
-            <Button size="s" variant={selectMode ? "primary" : "secondary"} onClick={() => setSelectMode(!selectMode)}>
-              {selectMode ? "Done" : "Edit"}
-            </Button>
-          </div>
-          <div className="mb-3">
-            <Button size="s" variant="secondary" onClick={() => setSymbols([])}>
-              Clear
-            </Button>
           </div>
         </div>
 
@@ -185,6 +177,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           setSelectedId={setSelectedId}
           onAddInventory={handleAddInventory}
           selectMode={selectMode}
+          setSelectMode={setSelectMode}
           onInsertSymbol={insertSymbolToDocument}
         />
 
