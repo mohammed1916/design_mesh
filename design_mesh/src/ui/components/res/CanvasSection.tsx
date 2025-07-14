@@ -18,19 +18,22 @@ const CanvasSection: React.FC<CanvasSectionProps> = ({
   onAddFavorite,
   selectMode,
 }) => (
-  <details className="mt-12 border border-gray-300 rounded-lg shadow-sm">
-    <summary className="cursor-pointer p-2 bg-gray-100 rounded-t-lg">Canvas</summary>
+    <details className="mt-12 border border-gray-300 rounded-lg shadow-sm">
+    <summary style={{ cursor: 'pointer', userSelect: 'none' }} className="p-2 bg-gray-100 rounded-t-lg">
+        Canvas
+    </summary>
     <div className="p-4">
-      <Canvas
+        <Canvas
         symbols={symbols}
         setSymbols={setSymbols}
         selectedId={selectedId}
         setSelectedId={setSelectedId}
         onAddFavorite={onAddFavorite}
         selectMode={selectMode}
-      />
+        />
     </div>
-  </details>
+    </details>
+
 );
 
 export default CanvasSection;
