@@ -8,6 +8,7 @@ import { DocumentSandboxApi } from "../../models/DocumentSandboxApi";
 import "./App.css";
 import { AddOnSDKAPI } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
 import Canvas, { SymbolType } from "./Canvas";
+import CanvasSection from "./res/CanvasSection";
 
 // component
 const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
@@ -134,35 +135,41 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     <Theme system="express" scale="medium" color="light">
       <div className="container">
         {/* Toolbar */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "center" }}>
-          <div onClick={() => handleInsertShape("rect")}>
-            <svg width={40} height={40}>
-              <rect x={5} y={10} width={30} height={20} fill="#90caf9" stroke="#333" strokeWidth={2} />
-            </svg>
+        <div className="flex p-4 mb-12">
+          <div style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "center" }}>
+            <div onClick={() => handleInsertShape("rect")}>
+              <svg width={40} height={40}>
+                <rect x={5} y={10} width={30} height={20} fill="#90caf9" stroke="#333" strokeWidth={2} />
+              </svg>
+            </div>
+            <div onClick={() => handleInsertShape("circle")}>
+              <svg width={40} height={40}>
+                <circle cx={20} cy={20} r={12} fill="#a5d6a7" stroke="#333" strokeWidth={2} />
+              </svg>
+            </div>
+            <div onClick={() => handleInsertShape("polygon")}>
+              <svg width={40} height={40}>
+                <polygon points="20,5 35,35 5,35" fill="#ffcc80" stroke="#333" strokeWidth={2} />
+              </svg>
+            </div>
+            <label>
+              <Button size="m">Upload</Button>
+              <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload} />
+            </label>
+            <Button size="s" variant={selectMode ? "primary" : "secondary"} onClick={() => setSelectMode(!selectMode)}>
+              {selectMode ? "Done" : "Edit"}
+            </Button>
           </div>
-          <div onClick={() => handleInsertShape("circle")}>
-            <svg width={40} height={40}>
-              <circle cx={20} cy={20} r={12} fill="#a5d6a7" stroke="#333" strokeWidth={2} />
-            </svg>
-          </div>
-          <div onClick={() => handleInsertShape("polygon")}>
-            <svg width={40} height={40}>
-              <polygon points="20,5 35,35 5,35" fill="#ffcc80" stroke="#333" strokeWidth={2} />
-            </svg>
-          </div>
-
-          <label>
-            <Button size="m">Upload</Button>
-            <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload} />
-          </label>
-
-          <Button size="s" variant={selectMode ? "primary" : "secondary"} onClick={() => setSelectMode(!selectMode)}>
-            {selectMode ? "Done" : "Edit"}
-          </Button>
+            <div className="mb-3">
+              <Button size="s" variant="secondary" onClick={() => setSymbols([])}>
+              Clear
+              </Button>
+            </div>
         </div>
 
         {/* Canvas */}
-        <Canvas
+
+        <CanvasSection
           symbols={symbols}
           setSymbols={setSymbols}
           selectedId={selectedId}
@@ -193,42 +200,61 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
         )}
 
         {/* Favorites */}
-        <div style={{ marginTop: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <h4>Favorites</h4>
-            <Button size="s" variant={editFavorites ? "primary" : "secondary"} onClick={() => setEditFavorites(!editFavorites)}>
+        <div className="mt-12">
+            <div className="flex items-center gap-2">
+            <h4 className="text-lg font-semibold">Favorites</h4>
+            <Button
+              size="s"
+              variant={editFavorites ? "primary" : "secondary"}
+              onClick={() => setEditFavorites(!editFavorites)}
+            >
               {editFavorites ? "Done" : "Edit"}
             </Button>
-            <select title="Filter Favorites" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
+            <select
+              title="Filter Favorites"
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-sm"
+            >
               <option value="All">All</option>
               {uniqueTags.map((tag) => (
-                <option key={tag} value={tag}>{tag}</option>
+              <option key={tag} value={tag}>
+                {tag}
+              </option>
               ))}
             </select>
-          </div>
+            </div>
 
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <div className="flex gap-2 flex-wrap mt-2">
             {filteredFavorites.map((fav) => (
-              <div key={fav.id} style={{ border: "1px solid #ccc", padding: 4, position: "relative" }}>
-                <div onClick={() => handleInsertFavorite(fav)} style={{ cursor: "pointer" }}>
-                  {fav.type === "rect" ? (
-                    <svg width={30} height={20}><rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" /></svg>
-                  ) : fav.type === "circle" ? (
-                    <svg width={30} height={30}><circle cx={15} cy={15} r={13} fill="gold" stroke="#333" /></svg>
-                  ) : fav.type === "polygon" ? (
-                    <svg width={30} height={30}><polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" /></svg>
-                  ) : fav.type === "image" && fav.src ? (
-                    <img src={fav.src} alt="fav" width={30} height={20} style={{ objectFit: "cover" }} />
-                  ) : null}
+              <div key={fav.id} className="border border-gray-300 p-1 relative">
+              <div onClick={() => handleInsertFavorite(fav)} className="cursor-pointer">
+                {fav.type === "rect" ? (
+                <svg width={30} height={20}>
+                  <rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" />
+                </svg>
+                ) : fav.type === "circle" ? (
+                <svg width={30} height={30}>
+                  <circle cx={15} cy={15} r={13} fill="gold" stroke="#333" />
+                </svg>
+                ) : fav.type === "polygon" ? (
+                <svg width={30} height={30}>
+                  <polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" />
+                </svg>
+                ) : fav.type === "image" && fav.src ? (
+                <img src={fav.src} alt="fav" width={30} height={20} className="object-cover" />
+                ) : null}
+              </div>
+              {editFavorites && (
+                <div className="absolute -top-2 -right-2">
+                <Button variant="secondary" size="s" onClick={() => handleRemoveFavorite(fav.id)}>
+                  −
+                </Button>
                 </div>
-                {editFavorites && (
-                  <div style={{ position: "absolute", top: -8, right: -8 }}>
-                    <Button variant="secondary" size="s" onClick={() => handleRemoveFavorite(fav.id)}>−</Button>
-                  </div>
-                )}
+              )}
               </div>
             ))}
-          </div>
+            </div>
         </div>
       </div>
     </Theme>
