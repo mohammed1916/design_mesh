@@ -6,7 +6,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { DocumentSandboxApi } from "../../models/DocumentSandboxApi";
 import { AddOnSDKAPI } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
 import CanvasSection, { SymbolType } from "./res/CanvasSection";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
   const [symbols, setSymbols] = useState<SymbolType[]>([]);
@@ -72,11 +72,6 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     await insertSymbolToCanvasAndDocument(newSymbol);
   };
 
-  const handleInsertInventory = async (inv: SymbolType) => {
-    const newSymbol: SymbolType = { ...inv, id: uuidv4(), x: inv.x + 20, y: inv.y + 20, inventory: false };
-    await insertSymbolToCanvasAndDocument(newSymbol);
-  };
-
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -100,22 +95,45 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   const handleAddInventory = async (id: string) => {
     const item = symbols.find((s) => s.id === id);
     if (!item || inventory.some((f) => f.id === id)) return;
+
     const inv = { ...item, inventory: true, tag: newTag.trim() || "Untagged" };
-    const updated = [...inventory, inv];
-    setInventory(updated);
-    await addOnUISdk.instance.clientStorage.setItem("inventory", updated);
+    const updatedInventory = [...inventory, inv];
+
+    // Sync inventory state and canvas state
+    setInventory(updatedInventory);
+    setSymbols((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, inventory: true } : s
+      )
+    );
+
+    await addOnUISdk.instance.clientStorage.setItem("inventory", updatedInventory);
     setNewTag("");
   };
 
   const handleRemoveInventory = async (id: string) => {
     const updated = inventory.filter((f) => f.id !== id);
     setInventory(updated);
+
+    setSymbols((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, inventory: false } : s
+      )
+    );
+
     await addOnUISdk.instance.clientStorage.setItem("inventory", updated);
   };
 
   const loadInventory = async () => {
     const stored = (await addOnUISdk.instance.clientStorage.getItem("inventory")) as SymbolType[] | undefined;
-    if (stored) setInventory(stored);
+    if (stored) {
+      setInventory(stored);
+      setSymbols((prev) =>
+        prev.map((s) =>
+          stored.some((i) => i.id === s.id) ? { ...s, inventory: true } : s
+        )
+      );
+    }
   };
 
   useEffect(() => {
@@ -214,7 +232,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           <div className="flex gap-2 flex-wrap mt-2">
             {filteredInventory.map((inv) => (
               <div key={inv.id} className="border border-gray-300 p-1 relative">
-                <div onClick={() => handleInsertInventory(inv)} className="cursor-pointer">
+                <div className="cursor-pointer">
                   {inv.type === "rect" ? (
                     <svg width={30} height={20}>
                       <rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" />
