@@ -1,16 +1,12 @@
-// imports
 import "@spectrum-web-components/theme/express/scale-medium.js";
 import "@spectrum-web-components/theme/express/theme-light.js";
 import { Button } from "@swc-react/button";
 import { Theme } from "@swc-react/theme";
 import React, { useEffect, useState, useMemo } from "react";
 import { DocumentSandboxApi } from "../../models/DocumentSandboxApi";
-import "./App.css";
 import { AddOnSDKAPI } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
-import Canvas, { SymbolType } from "./Canvas";
-import CanvasSection from "./res/CanvasSection";
+import CanvasSection, { SymbolType } from "./res/CanvasSection";
 
-// component
 const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
   const [symbols, setSymbols] = useState<SymbolType[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -22,8 +18,8 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
 
   const uuidv4 = () =>
     "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0,
-        v = c === "x" ? r : (r & 0x3) | 0x8;
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
       return v.toString(16);
     });
 
@@ -42,28 +38,13 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     });
   }
 
-  const handleInsertShape = async (type: "rect" | "circle" | "polygon") => {
-    const width = 100, height = 100;
-    let svg = "";
-
-    if (type === "rect") {
-      svg = `<rect width="100" height="60" fill="#90caf9" stroke="#333" stroke-width="2"/>`;
-    } else if (type === "circle") {
-      svg = `<circle cx="50" cy="50" r="45" fill="#a5d6a7" stroke="#333" stroke-width="2"/>`;
-    } else {
-      svg = `<polygon points="50,10 90,90 10,90" fill="#ffcc80" stroke="#333" stroke-width="2"/>`;
-    }
-
-    const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${svg}</svg>`;
-    const blob = await svgToPngBlob(fullSvg, width, height);
-    await addOnUISdk.app.document.addImage(blob);
+  // Insert the symbol into the Canvas (React state)
+  const insertSymbolToCanvas = (symbol: SymbolType) => {
+    setSymbols((prev) => [...prev, symbol]);
   };
 
-
-  const handleInsertSymbol = async (symbol: SymbolType) => {
-    const newSymbol = { ...symbol, id: uuidv4(), x: symbol.x + 20, y: symbol.y + 20 };
-    setSymbols((prev) => [...prev, newSymbol]);
-
+  // Insert the symbol into the Document (Adobe API)
+  const insertSymbolToDocument = async (symbol: SymbolType) => {
     if (symbol.type === "image" && symbol.src) {
       const blob = await (await fetch(symbol.src)).blob();
       await addOnUISdk.app.document.addImage(blob);
@@ -82,24 +63,46 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     }
   };
 
+  // Combined function
+  const insertSymbolToCanvasAndDocument = async (symbol: SymbolType) => {
+    insertSymbolToCanvas(symbol);
+    await insertSymbolToDocument(symbol);
+  };
+
+
+  const handleInsertShape = async (type: "rect" | "circle" | "polygon") => {
+    const newSymbol: SymbolType = {
+      id: uuidv4(),
+      x: 50,
+      y: 50,
+      width: 100,
+      height: 100,
+      type,
+    };
+    await insertSymbolToCanvasAndDocument(newSymbol);
+  };
+
+  const handleInsertFavorite = async (fav: SymbolType) => {
+    const newSymbol: SymbolType = { ...fav, id: uuidv4(), x: fav.x + 20, y: fav.y + 20, favorite: false };
+    await insertSymbolToCanvasAndDocument(newSymbol);
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const src = ev.target?.result as string;
-      const symbol = {
+      const symbol: SymbolType = {
         id: uuidv4(),
         x: 50,
         y: 50,
         width: 80,
         height: 80,
-        type: "image" as const,
+        type: "image",
         src,
       };
-      setSymbols((prev) => [...prev, symbol]);
-      const blob = await (await fetch(src)).blob();
-      await addOnUISdk.app.document.addImage(blob);
+      await insertSymbolToCanvasAndDocument(symbol);
     };
     reader.readAsDataURL(file);
   };
@@ -111,35 +114,13 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     const updated = [...favorites, fav];
     setFavorites(updated);
     await addOnUISdk.instance.clientStorage.setItem("favorites", updated);
-    setNewTag(""); // clear input
+    setNewTag("");
   };
 
   const handleRemoveFavorite = async (id: string) => {
     const updated = favorites.filter((f) => f.id !== id);
     setFavorites(updated);
     await addOnUISdk.instance.clientStorage.setItem("favorites", updated);
-  };
-
-  const handleInsertFavorite = async (fav: SymbolType) => {
-    const newSymbol = { ...fav, id: uuidv4(), x: fav.x + 20, y: fav.y + 20, favorite: false };
-    setSymbols((prev) => [...prev, newSymbol]);
-
-    if (fav.type === "image" && fav.src) {
-      const blob = await (await fetch(fav.src)).blob();
-      await addOnUISdk.app.document.addImage(blob);
-    } else {
-      let svg = "";
-      if (fav.type === "rect")
-        svg = `<rect width="${fav.width}" height="${fav.height}" fill="#90caf9" stroke="#333" stroke-width="2" />`;
-      else if (fav.type === "circle")
-        svg = `<circle cx="${fav.width / 2}" cy="${fav.height / 2}" r="${fav.width / 2 - 2}" fill="#a5d6a7" stroke="#333" stroke-width="2" />`;
-      else if (fav.type === "polygon")
-        svg = `<polygon points="50,10 90,90 10,90" fill="#ffcc80" stroke="#333" stroke-width="2" />`;
-
-      const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${fav.width}" height="${fav.height}">${svg}</svg>`;
-      const blob = await svgToPngBlob(fullSvg, fav.width, fav.height);
-      await addOnUISdk.app.document.addImage(blob);
-    }
   };
 
   const loadFavorites = async () => {
@@ -157,7 +138,6 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   return (
     <Theme system="express" scale="medium" color="light">
       <div className="container">
-        {/* Toolbar */}
         <div className="flex p-4 mb-12">
           <div style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "center" }}>
             <div onClick={() => handleInsertShape("rect")}>
@@ -183,14 +163,12 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
               {selectMode ? "Done" : "Edit"}
             </Button>
           </div>
-            <div className="mb-3">
-              <Button size="s" variant="secondary" onClick={() => setSymbols([])}>
+          <div className="mb-3">
+            <Button size="s" variant="secondary" onClick={() => setSymbols([])}>
               Clear
-              </Button>
-            </div>
+            </Button>
+          </div>
         </div>
-
-        {/* Canvas */}
 
         <CanvasSection
           symbols={symbols}
@@ -199,10 +177,9 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           setSelectedId={setSelectedId}
           onAddFavorite={handleAddFavorite}
           selectMode={selectMode}
-          onInsertSymbol={handleInsertSymbol}
+          onInsertSymbol={insertSymbolToDocument}
         />
 
-        {/* Tag input and Add to Favorites */}
         {selectMode && selectedId && (
           <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "center" }}>
             <input
@@ -223,15 +200,10 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           </div>
         )}
 
-        {/* Favorites */}
         <div className="mt-12">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <h4 className="text-lg font-semibold">Favorites</h4>
-            <Button
-              size="s"
-              variant={editFavorites ? "primary" : "secondary"}
-              onClick={() => setEditFavorites(!editFavorites)}
-            >
+            <Button size="s" variant={editFavorites ? "primary" : "secondary"} onClick={() => setEditFavorites(!editFavorites)}>
               {editFavorites ? "Done" : "Edit"}
             </Button>
             <select
@@ -242,43 +214,41 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
             >
               <option value="All">All</option>
               {uniqueTags.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
+                <option key={tag} value={tag}>
+                  {tag}
+                </option>
               ))}
             </select>
-            </div>
+          </div>
 
-            <div className="flex gap-2 flex-wrap mt-2">
+          <div className="flex gap-2 flex-wrap mt-2">
             {filteredFavorites.map((fav) => (
               <div key={fav.id} className="border border-gray-300 p-1 relative">
-              <div onClick={() => handleInsertFavorite(fav)} className="cursor-pointer">
-                {fav.type === "rect" ? (
-                <svg width={30} height={20}>
-                  <rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" />
-                </svg>
-                ) : fav.type === "circle" ? (
-                <svg width={30} height={30}>
-                  <circle cx={15} cy={15} r={13} fill="gold" stroke="#333" />
-                </svg>
-                ) : fav.type === "polygon" ? (
-                <svg width={30} height={30}>
-                  <polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" />
-                </svg>
-                ) : fav.type === "image" && fav.src ? (
-                <img src={fav.src} alt="fav" width={30} height={20} className="object-cover" />
-                ) : null}
-              </div>
-              {editFavorites && (
-                <div className="absolute -top-2 -right-2">
-                <Button variant="secondary" size="s" onClick={() => handleRemoveFavorite(fav.id)}>
-                  −
-                </Button>
+                <div onClick={() => handleInsertFavorite(fav)} className="cursor-pointer">
+                  {fav.type === "rect" ? (
+                    <svg width={30} height={20}>
+                      <rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" />
+                    </svg>
+                  ) : fav.type === "circle" ? (
+                    <svg width={30} height={30}>
+                      <circle cx={15} cy={15} r={13} fill="gold" stroke="#333" />
+                    </svg>
+                  ) : fav.type === "polygon" ? (
+                    <svg width={30} height={30}>
+                      <polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" />
+                    </svg>
+                  ) : fav.type === "image" && fav.src ? (
+                    <img src={fav.src} width={30} height={30} alt="Favorite" />
+                  ) : null}
                 </div>
-              )}
+                {editFavorites && (
+                  <button onClick={() => handleRemoveFavorite(fav.id)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+                    ×
+                  </button>
+                )}
               </div>
             ))}
-            </div>
+          </div>
         </div>
       </div>
     </Theme>
