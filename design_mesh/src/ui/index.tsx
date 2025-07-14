@@ -1,4 +1,4 @@
-// File: src/ui/index.tsx
+// File: design_mesh/src/ui/index.tsx
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { DocumentSandboxApi } from "../models/DocumentSandboxApi";

@@ -1,3 +1,4 @@
+// File: design_mesh/src/ui/components/res/CanvasSection.tsx
 import React, { useRef } from "react";
 
 export type SymbolType = {

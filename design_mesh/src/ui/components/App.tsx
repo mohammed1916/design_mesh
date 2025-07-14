@@ -1,3 +1,4 @@
+// FIle: design_mesh/src/ui/components/App.tsx
 import "@spectrum-web-components/theme/express/scale-medium.js";
 import "@spectrum-web-components/theme/express/theme-light.js";
 import { Button } from "@swc-react/button";
