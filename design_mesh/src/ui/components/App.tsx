@@ -11,7 +11,8 @@ import { v4 as uuidv4 } from "uuid";
 // Default inventory shapes (rect, circle, polygon)
 const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] = [
   {
-    id: "default-rect",
+    uuid: "default-rect-uuid",
+    inventoryId: "default-rect",
     x: 0,
     y: 0,
     width: 100,
@@ -22,7 +23,8 @@ const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] 
     isDefault: true,
   },
   {
-    id: "default-circle",
+    uuid: "default-circle-uuid",
+    inventoryId: "default-circle",
     x: 0,
     y: 0,
     width: 100,
@@ -33,7 +35,8 @@ const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] 
     isDefault: true,
   },
   {
-    id: "default-polygon",
+    uuid: "default-polygon-uuid",
+    inventoryId: "default-polygon",
     x: 0,
     y: 0,
     width: 100,
@@ -69,10 +72,18 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     });
   }
 
-  const insertSymbolToCanvas = (symbol: SymbolType) => {
-    setSymbols((prev) => [...prev, symbol]);
+  // Helper: get inventoryId from uuid
+  const getInventoryIdByUuid = (uuid: string) => {
+    const found = symbols.find((s) => s.uuid === uuid) || inventory.find((s) => s.uuid === uuid);
+    return found?.inventoryId || uuid;
   };
 
+  // Insert symbol to canvas (with new uuid, same inventoryId)
+  const insertSymbolToCanvas = (symbol: SymbolType) => {
+    setSymbols((prev) => [...prev, { ...symbol, uuid: uuidv4() }]);
+  };
+
+  // Insert symbol to document (no uuid change needed)
   const insertSymbolToDocument = async (symbol: SymbolType) => {
     if (symbol.type === "image" && symbol.src) {
       const blob = await (await fetch(symbol.src)).blob();
@@ -92,23 +103,34 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     }
   };
 
-  const insertSymbolToCanvasAndDocument = async (symbol: SymbolType) => {
-    insertSymbolToCanvas(symbol);
-    await insertSymbolToDocument(symbol);
+  // Insert from inventory: only add to canvas if not present, always add to document
+  const handleInsertFromInventory = async (inv: SymbolType) => {
+    const alreadyOnCanvas = symbols.some((s) => s.inventoryId === inv.inventoryId);
+    if (!alreadyOnCanvas) {
+      insertSymbolToCanvas({ ...inv, uuid: uuidv4() });
+    }
+    await insertSymbolToDocument(inv);
   };
 
+  // Insert new shape (rect/circle/polygon) with unique uuid and inventoryId
   const handleInsertShape = async (type: "rect" | "circle" | "polygon") => {
+    // Use inventoryId of default if exists, else new
+    const defaultInv = DEFAULT_INVENTORY.find((d) => d.type === type);
+    const inventoryId = defaultInv ? defaultInv.inventoryId : uuidv4();
     const newSymbol: SymbolType = {
-      id: uuidv4(),
+      uuid: uuidv4(),
+      inventoryId,
       x: 50,
       y: 50,
       width: 100,
       height: 100,
       type,
     };
-    await insertSymbolToCanvasAndDocument(newSymbol);
+    await insertSymbolToCanvas(newSymbol);
+    await insertSymbolToDocument(newSymbol);
   };
 
+  // Upload image: new uuid and inventoryId
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -116,7 +138,8 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     reader.onload = async (ev) => {
       const src = ev.target?.result as string;
       const symbol: SymbolType = {
-        id: uuidv4(),
+        uuid: uuidv4(),
+        inventoryId: uuidv4(),
         x: 50,
         y: 50,
         width: 80,
@@ -124,55 +147,53 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
         type: "image",
         src,
       };
-      await insertSymbolToCanvasAndDocument(symbol);
+      await insertSymbolToCanvas(symbol);
+      await insertSymbolToDocument(symbol);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleAddInventory = async (id: string) => {
-    const item = symbols.find((s) => s.id === id);
-    if (!item || inventory.some((f) => f.id === id)) return;
-
+  // Add to inventory by inventoryId
+  const handleAddInventory = async (uuid: string) => {
+    const item = symbols.find((s) => s.uuid === uuid);
+    if (!item || inventory.some((f) => f.inventoryId === item.inventoryId)) return;
     const inv = { ...item, inventory: true, tag: newTag.trim() || "Untagged" };
     const updatedInventory = [...inventory, inv];
-
-    // Sync inventory state and canvas state
     setInventory(updatedInventory);
     setSymbols((prev) =>
       prev.map((s) =>
-        s.id === id ? { ...s, inventory: true } : s
+        s.inventoryId === item.inventoryId ? { ...s, inventory: true } : s
       )
     );
-
     await addOnUISdk.instance.clientStorage.setItem("inventory", updatedInventory);
     setNewTag("");
   };
 
-  const handleRemoveInventory = async (id: string) => {
-    // Prevent removal of default shapes
-    if (DEFAULT_INVENTORY.some((d) => d.id === id)) return;
-    const updated = inventory.filter((f) => f.id !== id);
+  // Remove from inventory by inventoryId
+  const handleRemoveInventory = async (inventoryId: string) => {
+    if (DEFAULT_INVENTORY.some((d) => d.inventoryId === inventoryId)) return;
+    const updated = inventory.filter((f) => f.inventoryId !== inventoryId);
     setInventory(updated);
     setSymbols((prev) =>
       prev.map((s) =>
-        s.id === id ? { ...s, inventory: false } : s
+        s.inventoryId === inventoryId ? { ...s, inventory: false } : s
       )
     );
     await addOnUISdk.instance.clientStorage.setItem("inventory", updated);
   };
 
+  // Load inventory: ensure default shapes always present
   const loadInventory = async () => {
     const stored = (await addOnUISdk.instance.clientStorage.getItem("inventory")) as (SymbolType & { tag?: string; isDefault?: boolean })[] | undefined;
     let merged: (SymbolType & { tag?: string; isDefault?: boolean })[] = DEFAULT_INVENTORY;
     if (stored) {
-      // Ensure default shapes are always present
-      const nonDefault = stored.filter((i) => !DEFAULT_INVENTORY.some((d) => d.id === i.id));
+      const nonDefault = stored.filter((i) => !DEFAULT_INVENTORY.some((d) => d.inventoryId === i.inventoryId));
       merged = [...DEFAULT_INVENTORY, ...nonDefault];
     }
     setInventory(merged);
     setSymbols((prev) =>
       prev.map((s) =>
-        merged.some((i) => i.id === s.id) ? { ...s, inventory: true } : s
+        merged.some((i) => i.inventoryId === s.inventoryId) ? { ...s, inventory: true } : s
       )
     );
   };
@@ -220,6 +241,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           selectMode={selectMode}
           setSelectMode={setSelectMode}
           onInsertSymbol={insertSymbolToDocument}
+          inventoryList={inventory.map((i) => ({ inventoryId: i.inventoryId }))}
         />
 
         {selectMode && selectedId && (
@@ -307,7 +329,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
 
           <div className="flex gap-2 flex-wrap mt-2">
             {filteredInventory.map((inv) => (
-              <div key={inv.id} className="border border-gray-300 p-1 relative">
+              <div key={inv.inventoryId} className="border border-gray-300 p-1 relative" onClick={() => handleInsertFromInventory(inv)}>
                 <div className="cursor-pointer">
                   {inv.type === "rect" ? (
                     <svg width={30} height={20}>
@@ -326,7 +348,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                   ) : null}
                 </div>
                 {editInventory && !inv.isDefault && (
-                  <button onClick={() => handleRemoveInventory(inv.id)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+                  <button onClick={(e) => { e.stopPropagation(); handleRemoveInventory(inv.inventoryId); }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
                     ×
                   </button>
                 )}

@@ -2,7 +2,8 @@ import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type SymbolType = {
-  id: string;
+  uuid: string; // unique per instance on canvas/document
+  inventoryId: string; // shared between inventory and canvas for linkage
   x: number;
   y: number;
   width: number;
@@ -17,10 +18,11 @@ interface CanvasProps {
   setSymbols: React.Dispatch<React.SetStateAction<SymbolType[]>>;
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
-  onAddInventory: (id: string) => void;
+  onAddInventory: (inventoryId: string) => void;
   onInsertSymbol: (symbol: SymbolType) => void;
   selectMode: boolean;
   setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
+  inventoryList?: { inventoryId: string }[]; // Pass inventory list for star logic
 }
 
 // CanvasControls component for Edit/Done and Clear buttons
@@ -70,6 +72,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
   onInsertSymbol,
   selectMode,
   setSelectMode,
+  inventoryList = [], // default empty
 }) => {
   const dragOffset = useRef<{ x: number; y: number } | null>(null);
   const [open, setOpen] = useState(true);
@@ -77,7 +80,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if (!selectMode) return;
     setSelectedId(id);
-    const symbol = symbols.find((s) => s.id === id);
+    const symbol = symbols.find((s) => s.uuid === id);
     if (symbol) {
       dragOffset.current = {
         x: e.clientX - symbol.x,
@@ -90,7 +93,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
     if (!selectMode || !selectedId || !dragOffset.current) return;
     setSymbols((prev) =>
       prev.map((s) =>
-        s.id === selectedId
+        s.uuid === selectedId
           ? {
               ...s,
               x: e.clientX - dragOffset.current!.x,
@@ -105,13 +108,17 @@ const CanvasSection: React.FC<CanvasProps> = ({
     dragOffset.current = null;
   };
 
-  const toggleInventory = (id: string) => {
+  // Helper to check if a symbol is in inventory by inventoryId
+  const isInInventory = (inventoryId: string) =>
+    inventoryList.some((item) => item.inventoryId === inventoryId);
+
+  const toggleInventory = (inventoryId: string) => {
     setSymbols((prev) =>
       prev.map((s) =>
-        s.id === id ? { ...s, inventory: !s.inventory } : s
+        s.inventoryId === inventoryId ? { ...s, inventory: !s.inventory } : s
       )
     );
-    onAddInventory(id);
+    onAddInventory(inventoryId);
   };
 
   const renderInventoryStar = (symbol: SymbolType) => (
@@ -119,11 +126,11 @@ const CanvasSection: React.FC<CanvasProps> = ({
       x={symbol.x + symbol.width - 14}
       y={symbol.y + 16}
       fontSize="16"
-      fill={symbol.inventory ? "gold" : "#888"}
+      fill={isInInventory(symbol.inventoryId) ? "gold" : "#888"}
       style={{ cursor: "pointer", userSelect: "none" }}
       onClick={(e) => {
         e.stopPropagation();
-        toggleInventory(symbol.id);
+        toggleInventory(symbol.inventoryId);
       }}
     >
       ★
@@ -161,23 +168,23 @@ const CanvasSection: React.FC<CanvasProps> = ({
                   onMouseUp={handleMouseUp}
                 >
                   {symbols.map((symbol) => {
-                    const isSelected = symbol.id === selectedId;
+                    const isSelected = symbol.uuid === selectedId;
                     const stroke = isSelected ? "#1976d2" : "#333";
                     const strokeWidth = isSelected ? 3 : 1;
 
                     const sharedProps = {
-                      key: symbol.id,
+                      key: symbol.uuid,
                       stroke,
                       strokeWidth,
                       style: { cursor: selectMode ? "move" : "pointer" },
                       onMouseDown: (e: React.MouseEvent) => {
                         e.stopPropagation();
-                        handleMouseDown(e, symbol.id);
+                        handleMouseDown(e, symbol.uuid);
                       },
                     };
 
                     return (
-                      <g key={symbol.id}>
+                      <g key={symbol.uuid}>
                         {symbol.type === "rect" && (
                           <rect
                             {...sharedProps}
