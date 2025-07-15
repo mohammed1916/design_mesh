@@ -103,13 +103,15 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     }
   };
 
-  // Insert from inventory: only add to canvas if not present, always add to document
+  // Insert from inventory: always add a new symbol to the grid (canvas)
   const handleInsertFromInventory = async (inv: SymbolType) => {
-    const alreadyOnCanvas = symbols.some((s) => s.inventoryId === inv.inventoryId);
-    if (!alreadyOnCanvas) {
-      insertSymbolToCanvas({ ...inv, uuid: uuidv4() });
-    }
-    await insertSymbolToDocument(inv);
+    const newSymbol = {
+      ...inv,
+      uuid: uuidv4(),
+      // Optionally reset position if you want
+    };
+    setSymbols((prev) => [...prev, newSymbol]);
+    await insertSymbolToDocument(newSymbol);
   };
 
   // Insert new shape (rect/circle/polygon) with unique uuid and inventoryId
@@ -130,7 +132,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     await insertSymbolToDocument(newSymbol);
   };
 
-  // Upload image: new uuid and inventoryId
+  // Upload image: new uuid and inventoryId, reset file input after upload
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -140,15 +142,17 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
       const symbol: SymbolType = {
         uuid: uuidv4(),
         inventoryId: uuidv4(),
-        x: 50,
-        y: 50,
+        x: 0,
+        y: 0,
         width: 80,
         height: 80,
         type: "image",
         src,
       };
-      await insertSymbolToCanvas(symbol);
+      setSymbols((prev) => [...prev, symbol]);
       await insertSymbolToDocument(symbol);
+      // Reset file input so same file can be uploaded again
+      if (e.target) e.target.value = "";
     };
     reader.readAsDataURL(file);
   };

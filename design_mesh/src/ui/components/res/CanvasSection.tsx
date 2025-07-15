@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export type SymbolType = {
@@ -64,6 +64,11 @@ const CanvasControls: React.FC<{
   </div>
 );
 
+const GRID_COLS = 4;
+const GRID_CELL_WIDTH = 120;
+const GRID_CELL_HEIGHT = 120;
+const GRID_GAP = 24;
+
 const CanvasSection: React.FC<CanvasProps> = ({
   symbols,
   setSymbols,
@@ -75,40 +80,8 @@ const CanvasSection: React.FC<CanvasProps> = ({
   setSelectMode,
   inventoryList = [],
 }) => {
-  const dragOffset = useRef<{ x: number; y: number } | null>(null);
   const [open, setOpen] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
-
-  const handleMouseDown = (e: React.MouseEvent, id: string) => {
-    if (!selectMode) return;
-    setSelectedId(id);
-    const symbol = symbols.find((s) => s.uuid === id);
-    if (symbol) {
-      dragOffset.current = {
-        x: e.clientX - symbol.x,
-        y: e.clientY - symbol.y,
-      };
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!selectMode || !selectedId || !dragOffset.current) return;
-    setSymbols((prev) =>
-      prev.map((s) =>
-        s.uuid === selectedId
-          ? {
-              ...s,
-              x: e.clientX - dragOffset.current!.x,
-              y: e.clientY - dragOffset.current!.y,
-            }
-          : s
-      )
-    );
-  };
-
-  const handleMouseUp = () => {
-    dragOffset.current = null;
-  };
 
   // Helper to check if a symbol is in inventory by inventoryId
   const isInInventory = (inventoryId: string) =>
@@ -140,7 +113,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
   );
 
   return (
-    <div className="mt-12" style={{ position: "relative"}}>
+    <div className="mt-12" style={{ position: "relative" }}>
       {showClearConfirm && (
         <div style={{
           position: "absolute", zIndex: 10, left: 0, top: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center"
@@ -176,81 +149,63 @@ const CanvasSection: React.FC<CanvasProps> = ({
             >
               <div className="p-4 bg-white rounded-b-xl border-t">
             <CanvasControls selectMode={selectMode} setSelectMode={setSelectMode} setSymbols={setSymbols} onRequestClear={() => setShowClearConfirm(true)} />
-                <svg
-                  width={600}
-                  height={400}
-                  style={{ border: "1px solid #ccc", background: "#fff" }}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                >
-                  {symbols.map((symbol) => {
-                    const isSelected = symbol.uuid === selectedId;
-                    const stroke = isSelected ? "#1976d2" : "#333";
-                    const strokeWidth = isSelected ? 3 : 1;
-
-                    const sharedProps = {
-                      key: symbol.uuid,
-                      stroke,
-                      strokeWidth,
-                      style: { cursor: selectMode ? "move" : "pointer" },
-                      onMouseDown: (e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        handleMouseDown(e, symbol.uuid);
-                      },
-                    };
-
-                    return (
-                      <g key={symbol.uuid}>
-                        {symbol.type === "rect" && (
-                          <rect
-                            {...sharedProps}
-                            x={symbol.x}
-                            y={symbol.y}
-                            width={symbol.width}
-                            height={symbol.height}
-                            fill={symbol.inventory ? "gold" : "#90caf9"}
-                          />
-                        )}
-                        {symbol.type === "circle" && (
-                          <circle
-                            {...sharedProps}
-                            cx={symbol.x + symbol.width / 2}
-                            cy={symbol.y + symbol.height / 2}
-                            r={Math.min(symbol.width, symbol.height) / 2}
-                            fill={symbol.inventory ? "gold" : "#a5d6a7"}
-                          />
-                        )}
-                        {symbol.type === "polygon" && (
-                          <polygon
-                            {...sharedProps}
-                            points={`
-                              ${symbol.x + symbol.width / 2},${symbol.y}
-                              ${symbol.x + symbol.width},${symbol.y + symbol.height}
-                              ${symbol.x},${symbol.y + symbol.height}
-                            `}
-                            fill={symbol.inventory ? "gold" : "#ffcc80"}
-                          />
-                        )}
-                        {symbol.type === "image" && symbol.src && (
-                          <image
-                            {...sharedProps}
-                            x={symbol.x}
-                            y={symbol.y}
-                            width={symbol.width}
-                            height={symbol.height}
-                            href={symbol.src}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onInsertSymbol(symbol);
-                            }}
-                          />
-                        )}
-                        {renderInventoryStar(symbol)}
-                      </g>
-                    );
-                  })}
-                </svg>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: `repeat(${GRID_COLS}, ${GRID_CELL_WIDTH}px)`,
+                  gap: `${GRID_GAP}px`,
+                  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+                  borderRadius: 16,
+                  padding: 32,
+                  justifyContent: "center",
+                  minHeight: 400,
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
+                  border: "1.5px solid #e0e7ef",
+                }}
+              >
+                {symbols.map((symbol) => {
+                  const cellStyle = {
+                    width: GRID_CELL_WIDTH,
+                    height: GRID_CELL_HEIGHT,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "#fff",
+                    borderRadius: 16,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    position: "relative" as const,
+                    transition: "box-shadow 0.2s",
+                    border: "1.5px solid #e3e8f0",
+                    cursor: "pointer",
+                  };
+                  // Add click handler to insert symbol to document
+                  const handleInsert = () => onInsertSymbol(symbol);
+                  return (
+                    <div key={symbol.uuid} style={cellStyle} onClick={handleInsert}>
+                      {symbol.type === "rect" && (
+                        <svg width={80} height={80}>
+                          <rect x={10} y={20} width={60} height={40} fill={symbol.inventory ? "gold" : "#90caf9"} stroke="#333" strokeWidth={2} rx={12} />
+                        </svg>
+                      )}
+                      {symbol.type === "circle" && (
+                        <svg width={80} height={80}>
+                          <circle cx={40} cy={40} r={28} fill={symbol.inventory ? "gold" : "#a5d6a7"} stroke="#333" strokeWidth={2} />
+                        </svg>
+                      )}
+                      {symbol.type === "polygon" && (
+                        <svg width={80} height={80}>
+                          <polygon points="40,10 70,70 10,70" fill={symbol.inventory ? "gold" : "#ffcc80"} stroke="#333" strokeWidth={2} />
+                        </svg>
+                      )}
+                      {symbol.type === "image" && symbol.src && (
+                        <img src={symbol.src} alt="img" style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", border: "1.5px solid #bbb", boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }} />
+                      )}
+                      <div style={{ position: "absolute", top: 8, right: 12 }}>{renderInventoryStar(symbol)}</div>
+                    </div>
+                  );
+                })}
               </div>
+            </div>
             </motion.div>
           )}
         </AnimatePresence>
