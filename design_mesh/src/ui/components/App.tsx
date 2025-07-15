@@ -8,11 +8,48 @@ import { AddOnSDKAPI } from "https://new.express.adobe.com/static/add-on-sdk/sdk
 import CanvasSection, { SymbolType } from "./res/CanvasSection";
 import { v4 as uuidv4 } from "uuid";
 
+// Default inventory shapes (rect, circle, polygon)
+const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] = [
+  {
+    id: "default-rect",
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
+    type: "rect",
+    inventory: true,
+    tag: "Basic",
+    isDefault: true,
+  },
+  {
+    id: "default-circle",
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
+    type: "circle",
+    inventory: true,
+    tag: "Basic",
+    isDefault: true,
+  },
+  {
+    id: "default-polygon",
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
+    type: "polygon",
+    inventory: true,
+    tag: "Basic",
+    isDefault: true,
+  },
+];
+
 const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
   const [symbols, setSymbols] = useState<SymbolType[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
-  const [inventory, setInventory] = useState<(SymbolType & { tag?: string })[]>([]);
+  const [inventory, setInventory] = useState<(SymbolType & { tag?: string; isDefault?: boolean })[]>([]);
   const [editInventory, setEditInventory] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [tagFilter, setTagFilter] = useState("All");
@@ -112,28 +149,32 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   };
 
   const handleRemoveInventory = async (id: string) => {
+    // Prevent removal of default shapes
+    if (DEFAULT_INVENTORY.some((d) => d.id === id)) return;
     const updated = inventory.filter((f) => f.id !== id);
     setInventory(updated);
-
     setSymbols((prev) =>
       prev.map((s) =>
         s.id === id ? { ...s, inventory: false } : s
       )
     );
-
     await addOnUISdk.instance.clientStorage.setItem("inventory", updated);
   };
 
   const loadInventory = async () => {
-    const stored = (await addOnUISdk.instance.clientStorage.getItem("inventory")) as SymbolType[] | undefined;
+    const stored = (await addOnUISdk.instance.clientStorage.getItem("inventory")) as (SymbolType & { tag?: string; isDefault?: boolean })[] | undefined;
+    let merged: (SymbolType & { tag?: string; isDefault?: boolean })[] = DEFAULT_INVENTORY;
     if (stored) {
-      setInventory(stored);
-      setSymbols((prev) =>
-        prev.map((s) =>
-          stored.some((i) => i.id === s.id) ? { ...s, inventory: true } : s
-        )
-      );
+      // Ensure default shapes are always present
+      const nonDefault = stored.filter((i) => !DEFAULT_INVENTORY.some((d) => d.id === i.id));
+      merged = [...DEFAULT_INVENTORY, ...nonDefault];
     }
+    setInventory(merged);
+    setSymbols((prev) =>
+      prev.map((s) =>
+        merged.some((i) => i.id === s.id) ? { ...s, inventory: true } : s
+      )
+    );
   };
 
   useEffect(() => {
@@ -284,7 +325,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                     <img src={inv.src} width={30} height={30} alt="Inventory" />
                   ) : null}
                 </div>
-                {editInventory && (
+                {editInventory && !inv.isDefault && (
                   <button onClick={() => handleRemoveInventory(inv.id)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
                     ×
                   </button>
