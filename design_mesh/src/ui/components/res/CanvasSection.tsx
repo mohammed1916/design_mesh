@@ -30,7 +30,8 @@ const CanvasControls: React.FC<{
   selectMode: boolean;
   setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
   setSymbols: React.Dispatch<React.SetStateAction<SymbolType[]>>;
-}> = ({ selectMode, setSelectMode, setSymbols }) => (
+  onRequestClear: () => void;
+}> = ({ selectMode, setSelectMode, onRequestClear }) => (
   <div style={{ display: "flex", gap: 10, alignItems: "center", padding: 16 }}>
     <button
       style={{
@@ -56,7 +57,7 @@ const CanvasControls: React.FC<{
         fontWeight: 500,
         cursor: "pointer",
       }}
-      onClick={() => setSymbols([])}
+      onClick={onRequestClear}
     >
       Clear
     </button>
@@ -72,10 +73,11 @@ const CanvasSection: React.FC<CanvasProps> = ({
   onInsertSymbol,
   selectMode,
   setSelectMode,
-  inventoryList = [], // default empty
+  inventoryList = [],
 }) => {
   const dragOffset = useRef<{ x: number; y: number } | null>(null);
   const [open, setOpen] = useState(true);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
     if (!selectMode) return;
@@ -138,7 +140,21 @@ const CanvasSection: React.FC<CanvasProps> = ({
   );
 
   return (
-    <div className="mt-12">
+    <div className="mt-12" style={{ position: "relative"}}>
+      {showClearConfirm && (
+        <div style={{
+          position: "absolute", zIndex: 10, left: 0, top: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+          <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 2px 16px rgba(0,0,0,0.15)", padding: 32, minWidth: 320, textAlign: "center", marginLeft: 40 }}>
+            <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Clear all symbols?</div>
+            <div style={{ marginBottom: 24, color: "#555" }}>Are you sure you want to remove all symbols from the canvas?</div>
+            <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
+              <button style={{ padding: "8px 24px", borderRadius: 6, background: "#d32f2f", color: "#fff", border: 0, fontWeight: 600, cursor: "pointer" }} onClick={() => { setSymbols([]); setShowClearConfirm(false); }}>Yes, clear</button>
+              <button style={{ padding: "8px 24px", borderRadius: 6, background: "#eee", color: "#333", border: 0, fontWeight: 500, cursor: "pointer" }} onClick={() => setShowClearConfirm(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="border border-gray-300 rounded-xl shadow-sm">
         <button
           onClick={() => setOpen(!open)}
@@ -159,7 +175,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
             className="overflow-hidden"
             >
               <div className="p-4 bg-white rounded-b-xl border-t">
-            <CanvasControls selectMode={selectMode} setSelectMode={setSelectMode} setSymbols={setSymbols} />
+            <CanvasControls selectMode={selectMode} setSelectMode={setSelectMode} setSymbols={setSymbols} onRequestClear={() => setShowClearConfirm(true)} />
                 <svg
                   width={600}
                   height={400}
