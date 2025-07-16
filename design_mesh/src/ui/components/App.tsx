@@ -56,6 +56,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   const [editInventory, setEditInventory] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [tagFilter, setTagFilter] = useState("All");
+  const [toast, setToast] = useState<string | null>(null);
 
   async function svgToPngBlob(svg: string, width: number, height: number): Promise<Blob> {
     return new Promise((resolve) => {
@@ -139,6 +140,12 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const src = ev.target?.result as string;
+      // Check for duplicate src in symbols
+      if (symbols.some((s) => s.type === "image" && s.src === src)) {
+        setToast("Something went wrong: Try refreashing the canvas.");
+        if (e.target) e.target.value = "";
+        return;
+      }
       const symbol: SymbolType = {
         uuid: uuidv4(),
         inventoryId: uuidv4(),
@@ -151,7 +158,6 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
       };
       setSymbols((prev) => [...prev, symbol]);
       await insertSymbolToDocument(symbol);
-      // Reset file input so same file can be uploaded again
       if (e.target) e.target.value = "";
     };
     reader.readAsDataURL(file);
@@ -242,10 +248,12 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           selectedId={selectedId}
           setSelectedId={setSelectedId}
           onAddInventory={handleAddInventory}
+          onInsertSymbol={handleInsertFromInventory}
           selectMode={selectMode}
           setSelectMode={setSelectMode}
-          onInsertSymbol={insertSymbolToDocument}
           inventoryList={inventory.map((i) => ({ inventoryId: i.inventoryId }))}
+          toast={toast}
+          setToast={setToast}
         />
 
         {selectMode && selectedId && (
@@ -304,6 +312,28 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
               }}
             >
               {editInventory ? "Done" : "Edit"}
+            </Button>
+            <Button
+              size="s"
+              variant="secondary"
+              onClick={async () => {
+                await loadInventory();
+                setToast("Canvas refreshed.");
+              }}
+              style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}
+            >
+              Refresh Canvas
+            </Button>
+            <Button
+              size="s"
+              variant="secondary"
+              onClick={() => {
+                setSymbols([]);
+                setToast("Canvas cleared.");
+              }}
+              style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}
+            >
+              Clear Canvas
             </Button>
             <select
               title="Filter Inventory"

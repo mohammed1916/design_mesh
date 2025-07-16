@@ -23,6 +23,8 @@ interface CanvasProps {
   selectMode: boolean;
   setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
   inventoryList?: { inventoryId: string }[]; // Pass inventory list for star logic
+  toast?: string | null;
+  setToast?: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
 // CanvasControls component for Edit/Done and Clear buttons
@@ -79,6 +81,8 @@ const CanvasSection: React.FC<CanvasProps> = ({
   selectMode,
   setSelectMode,
   inventoryList = [],
+  toast,
+  setToast,
 }) => {
   const [open, setOpen] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -126,6 +130,13 @@ const CanvasSection: React.FC<CanvasProps> = ({
 
   return (
     <div className="mt-12" style={{ position: "relative" }}>
+      {toast && (
+        <div style={{
+          position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", background: "#fffbe6", color: "#222", border: "1.5px solid #d6c585", borderRadius: 10, padding: "10px 32px", fontWeight: 600, fontSize: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", zIndex: 20,
+        }}>
+          {toast}
+        </div>
+      )}
       {showClearConfirm && (
         <div style={{
           position: "absolute", zIndex: 10, left: 0, top: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center"
@@ -192,6 +203,10 @@ const CanvasSection: React.FC<CanvasProps> = ({
                     outline: inInventory ? "0.1px solid #d6c585" : "none",
                   };
                   const handleInsert = () => onInsertSymbol(symbol);
+                  const handleRemove = (e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    setSymbols((prev) => prev.filter((s) => s.uuid !== symbol.uuid));
+                  };
                   return (
                     <div key={symbol.uuid} style={cellStyle} onClick={handleInsert}>
                       {symbol.type === "rect" && (
@@ -215,6 +230,13 @@ const CanvasSection: React.FC<CanvasProps> = ({
                       {!inInventory && (
                         <div style={{ position: "absolute", top: 8, right: 12 }}>{renderInventoryStar(symbol)}</div>
                       )}
+                      <button
+                        style={{ position: "absolute", bottom: 8, right: 12, background: "#fffbe6", color: "#d32f2f", border: "1px solid #d6c585", borderRadius: 8, padding: "2px 10px", fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+                        onClick={handleRemove}
+                        title="Remove from canvas"
+                      >
+                        ×
+                      </button>
                     </div>
                   );
                 })}
