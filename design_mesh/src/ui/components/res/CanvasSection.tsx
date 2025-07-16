@@ -97,19 +97,31 @@ const CanvasSection: React.FC<CanvasProps> = ({
   };
 
   const renderInventoryStar = (symbol: SymbolType) => (
-    <text
-      x={symbol.x + symbol.width - 14}
-      y={symbol.y + 16}
-      fontSize="16"
-      fill={isInInventory(symbol.inventoryId) ? "gold" : "#888"}
-      style={{ cursor: "pointer", userSelect: "none" }}
+    <span
+      style={{
+        position: "relative",
+        display: "inline-block",
+        cursor: "pointer",
+        userSelect: "none",
+        fontSize: 20,
+        color: isInInventory(symbol.inventoryId) ? "gold" : "#888",
+        transition: "color 0.2s",
+      }}
       onClick={(e) => {
         e.stopPropagation();
-        toggleInventory(symbol.inventoryId);
+        // Add to inventory if not already present
+        if (!isInInventory(symbol.inventoryId)) {
+          // Find the symbol in symbols array
+          const sym = symbols.find((s) => s.uuid === symbol.uuid);
+          if (sym) {
+            onAddInventory(sym.uuid);
+          }
+        }
       }}
+      title={isInInventory(symbol.inventoryId) ? "In Inventory" : "Add to Inventory"}
     >
       ★
-    </text>
+    </span>
   );
 
   return (
@@ -164,6 +176,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
                 }}
               >
                 {symbols.map((symbol) => {
+                  const inInventory = isInInventory(symbol.inventoryId);
                   const cellStyle = {
                     width: GRID_CELL_WIDTH,
                     height: GRID_CELL_HEIGHT,
@@ -175,10 +188,9 @@ const CanvasSection: React.FC<CanvasProps> = ({
                     boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
                     position: "relative" as const,
                     transition: "box-shadow 0.2s",
-                    border: "1.5px solid #e3e8f0",
-                    cursor: "pointer",
+                    border: inInventory ? "0.5px solid #f7e9b0" : "0.5px solid #e3e8f0",
+                    outline: inInventory ? "0.1px solid #d6c585" : "none",
                   };
-                  // Add click handler to insert symbol to document
                   const handleInsert = () => onInsertSymbol(symbol);
                   return (
                     <div key={symbol.uuid} style={cellStyle} onClick={handleInsert}>
@@ -200,7 +212,9 @@ const CanvasSection: React.FC<CanvasProps> = ({
                       {symbol.type === "image" && symbol.src && (
                         <img src={symbol.src} alt="img" style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", border: "1.5px solid #bbb", boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }} />
                       )}
-                      <div style={{ position: "absolute", top: 8, right: 12 }}>{renderInventoryStar(symbol)}</div>
+                      {!inInventory && (
+                        <div style={{ position: "absolute", top: 8, right: 12 }}>{renderInventoryStar(symbol)}</div>
+                      )}
                     </div>
                   );
                 })}
