@@ -226,7 +226,11 @@ const CanvasSection: React.FC<CanvasProps> = ({
                     setSymbols((prev) => prev.filter((s) => s.uuid !== symbol.uuid));
                   };
                   return (
-                    <div key={symbol.uuid} style={cellStyle} onClick={handleInsert}>
+                    <div
+                      key={symbol.uuid}
+                      style={cellStyle}
+                      onClick={symbol.type !== "historyIcon" ? handleInsert : undefined}
+                    >
                       {symbol.type === "rect" && (
                         <svg width={80} height={80}>
                           <rect x={10} y={20} width={60} height={40} fill={symbol.inventory ? "gold" : "#90caf9"} stroke="#333" strokeWidth={2} rx={12} />
@@ -241,26 +245,31 @@ const CanvasSection: React.FC<CanvasProps> = ({
                         <svg width={80} height={80}>
                           <polygon points="40,10 70,70 10,70" fill={symbol.inventory ? "gold" : "#ffcc80"} stroke="#333" strokeWidth={2} />
                         </svg>
-                      )}
-                      {symbol.type === "historyIcon" && (
-                        <svg width={80} height={80} viewBox="0 0 80 80">
-                          <circle cx="40" cy="40" r="28" fill={symbol.inventory ? "gold" : "#ffe082"} stroke="#333" strokeWidth={2} />
-                          <path d="M40 22 v18 l14 14" stroke="#333" strokeWidth="3" fill="none" />
-                        </svg>
-                      )}
-                      {symbol.type === "image" && symbol.src && (
+                        )}
+                        {symbol.type === "historyIcon" && (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: 80, height: 80, pointerEvents: "none", opacity: 0.7 }}>
+                              <svg width={80} height={80} viewBox="0 0 80 80">
+                                <circle cx="40" cy="40" r="28" fill={symbol.inventory ? "gold" : "#ffe082"} stroke="#333" strokeWidth={2} />
+                                <path d="M40 22 v18 l14 14" stroke="#333" strokeWidth="3" fill="none" />
+                              </svg>
+                              <div style={{ fontSize: 12, color: "#888", textAlign: "center", marginTop: 8 }}>
+                                Your history appears here
+                              </div>
+                            </div>
+                          )}
+                        {symbol.type === "image" && symbol.src && (
                         <img src={symbol.src} alt="img" style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", border: "1.5px solid #bbb", boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }} />
+                        )}
+
+                      {symbol.type !== "historyIcon" && (
+                        <button
+                          style={{ position: "absolute", bottom: 8, right: 12, background: "#fffbe6", color: "#d32f2f", border: "1px solid #d6c585", borderRadius: 8, padding: "2px 10px", fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+                          onClick={handleRemove}
+                          title="Remove from canvas"
+                        >
+                          ×
+                        </button>
                       )}
-                      {!inInventory && (
-                        <div style={{ position: "absolute", top: 8, right: 12 }}>{renderInventoryStar(symbol)}</div>
-                      )}
-                      <button
-                        style={{ position: "absolute", bottom: 8, right: 12, background: "#fffbe6", color: "#d32f2f", border: "1px solid #d6c585", borderRadius: 8, padding: "2px 10px", fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
-                        onClick={handleRemove}
-                        title="Remove from canvas"
-                      >
-                        ×
-                      </button>
                     </div>
                   );
                 })}

@@ -118,13 +118,13 @@ const appSlice = createSlice({
     clearSymbols(state) {
       state.symbols = [
         {
-            "uuid": uuidv4(),
-            "inventoryId": "default-polygon",
+            "uuid":  uuidv4(),
+            "inventoryId": "default-history-icon",
             "x": 50,
             "y": 50,
             "width": 100,
             "height": 100,
-            "type": "polygon"
+            "type": "historyIcon"
         }
     ];
     },
