@@ -2,11 +2,13 @@ import "@spectrum-web-components/theme/express/scale-medium.js";
 import "@spectrum-web-components/theme/express/theme-light.js";
 import { Button } from "@swc-react/button";
 import { Theme } from "@swc-react/theme";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { DocumentSandboxApi } from "../../models/DocumentSandboxApi";
 import { AddOnSDKAPI } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
 import CanvasSection, { SymbolType } from "./res/CanvasSection";
 import { v4 as uuidv4 } from "uuid";
+import { createSlice, configureStore } from "@reduxjs/toolkit";
+import { useSelector, useDispatch } from "react-redux";
 
 // Default inventory shapes (rect, circle, polygon)
 const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] = [
@@ -48,15 +50,100 @@ const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] 
   },
 ];
 
+// Redux slice for symbols, inventory, tags, toast, selection
+const initialState = {
+  symbols: [] as SymbolType[],
+  inventory: DEFAULT_INVENTORY as (SymbolType & { tag?: string; isDefault?: boolean })[],
+  selectedId: null as string | null,
+  selectMode: false,
+  editInventory: false,
+  newTag: "",
+  tagFilter: "All",
+  toast: null as string | null,
+};
+
+const appSlice = createSlice({
+  name: "app",
+  initialState,
+  reducers: {
+    setSymbols(state, action) {
+      state.symbols = action.payload;
+    },
+    addSymbol(state, action) {
+      if (!Array.isArray(state.symbols)) {
+        state.symbols = [];
+      }
+      state.symbols.push(action.payload);
+    },
+    setInventory(state, action) {
+      state.inventory = action.payload;
+    },
+    addInventory(state, action) {
+      state.inventory.push(action.payload);
+    },
+    removeInventory(state, action) {
+      state.inventory = state.inventory.filter((i) => i.inventoryId !== action.payload);
+      state.symbols = state.symbols.map((s) =>
+        s.inventoryId === action.payload ? { ...s, inventory: false } : s
+      );
+    },
+    setSelectedId(state, action) {
+      state.selectedId = action.payload;
+    },
+    setSelectMode(state, action) {
+      state.selectMode = action.payload;
+    },
+    setEditInventory(state, action) {
+      state.editInventory = action.payload;
+    },
+    setNewTag(state, action) {
+      state.newTag = action.payload;
+    },
+    setTagFilter(state, action) {
+      state.tagFilter = action.payload;
+    },
+    setToast(state, action) {
+      state.toast = action.payload;
+    },
+    clearSymbols(state) {
+      state.symbols = [];
+    },
+    refreshInventory(state, action) {
+      state.inventory = action.payload;
+    },
+  },
+});
+
+const store = configureStore({ reducer: { app: appSlice.reducer } });
+const {
+  setSymbols,
+  addSymbol,
+  setInventory,
+  addInventory,
+  removeInventory,
+  setSelectedId,
+  setSelectMode,
+  setEditInventory,
+  setNewTag,
+  setTagFilter,
+  setToast,
+  clearSymbols,
+  refreshInventory,
+} = appSlice.actions;
+
 const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
-  const [symbols, setSymbols] = useState<SymbolType[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectMode, setSelectMode] = useState(false);
-  const [inventory, setInventory] = useState<(SymbolType & { tag?: string; isDefault?: boolean })[]>([]);
-  const [editInventory, setEditInventory] = useState(false);
-  const [newTag, setNewTag] = useState("");
-  const [tagFilter, setTagFilter] = useState("All");
-  const [toast, setToast] = useState<string | null>(null);
+  const dispatch = useDispatch();
+  const appState = useSelector((state: any) => state.app);
+  const symbols = Array.isArray(appState.symbols) ? appState.symbols : [];
+  const {
+    inventory,
+    selectedId,
+    selectMode,
+    editInventory,
+    newTag,
+    tagFilter,
+    toast,
+  } = appState;
 
   async function svgToPngBlob(svg: string, width: number, height: number): Promise<Blob> {
     return new Promise((resolve) => {
@@ -81,7 +168,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
 
   // Insert symbol to canvas (with new uuid, same inventoryId)
   const insertSymbolToCanvas = (symbol: SymbolType) => {
-    setSymbols((prev) => [...prev, { ...symbol, uuid: uuidv4() }]);
+    dispatch(addSymbol({ ...symbol, uuid: uuidv4() }));
   };
 
   // Insert symbol to document (no uuid change needed)
@@ -111,7 +198,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
       uuid: uuidv4(),
       // Optionally reset position if you want
     };
-    setSymbols((prev) => [...prev, newSymbol]);
+    dispatch(addSymbol(newSymbol));
     await insertSymbolToDocument(newSymbol);
   };
 
@@ -141,8 +228,10 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     reader.onload = async (ev) => {
       const src = ev.target?.result as string;
       // Check for duplicate src in symbols
-      if (symbols.some((s) => s.type === "image" && s.src === src)) {
-        setToast("Something went wrong: Try refreashing the canvas.");
+      console.log("Symbols before upload:", symbols);
+      console.log("Checking:", symbols.some((s) => s.uuid));
+      if (symbols.some((s) => s.uuid) && symbols.some((s) => s.src === src && s.type !== "image")) {
+        dispatch(setToast("Something went wrong: plese enter a valid image. (png, jpg, svg etc.)"));
         if (e.target) e.target.value = "";
         return;
       }
@@ -156,7 +245,8 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
         type: "image",
         src,
       };
-      setSymbols((prev) => [...prev, symbol]);
+      
+      dispatch(addSymbol(symbol));
       await insertSymbolToDocument(symbol);
       if (e.target) e.target.value = "";
     };
@@ -169,24 +259,25 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     if (!item || inventory.some((f) => f.inventoryId === item.inventoryId)) return;
     const inv = { ...item, inventory: true, tag: newTag.trim() || "Untagged" };
     const updatedInventory = [...inventory, inv];
-    setInventory(updatedInventory);
-    setSymbols((prev) =>
-      prev.map((s) =>
-        s.inventoryId === item.inventoryId ? { ...s, inventory: true } : s
-      )
+    dispatch(setInventory(updatedInventory));
+    // Fix: get current symbols, compute new array, then dispatch
+    const currentSymbols = store.getState().app.symbols;
+    const updatedSymbols = currentSymbols.map((s) =>
+      s.inventoryId === item.inventoryId ? { ...s, inventory: true } : s
     );
+    dispatch(setSymbols(updatedSymbols));
     await addOnUISdk.instance.clientStorage.setItem("inventory", updatedInventory);
-    setNewTag("");
+    dispatch(setNewTag(""));
   };
 
   // Remove from inventory by inventoryId
   const handleRemoveInventory = async (inventoryId: string) => {
     if (DEFAULT_INVENTORY.some((d) => d.inventoryId === inventoryId)) return;
     const updated = inventory.filter((f) => f.inventoryId !== inventoryId);
-    setInventory(updated);
-    setSymbols((prev) =>
-      prev.map((s) =>
-        s.inventoryId === inventoryId ? { ...s, inventory: false } : s
+    dispatch(setInventory(updated));
+    dispatch(
+      setSymbols((prev) =>
+        prev.map((s) => (s.inventoryId === inventoryId ? { ...s, inventory: false } : s))
       )
     );
     await addOnUISdk.instance.clientStorage.setItem("inventory", updated);
@@ -194,18 +285,21 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
 
   // Load inventory: ensure default shapes always present
   const loadInventory = async () => {
-    const stored = (await addOnUISdk.instance.clientStorage.getItem("inventory")) as (SymbolType & { tag?: string; isDefault?: boolean })[] | undefined;
+    const stored = (await addOnUISdk.instance.clientStorage.getItem("inventory")) as
+      | (SymbolType & { tag?: string; isDefault?: boolean })[]
+      | undefined;
     let merged: (SymbolType & { tag?: string; isDefault?: boolean })[] = DEFAULT_INVENTORY;
     if (stored) {
       const nonDefault = stored.filter((i) => !DEFAULT_INVENTORY.some((d) => d.inventoryId === i.inventoryId));
       merged = [...DEFAULT_INVENTORY, ...nonDefault];
     }
-    setInventory(merged);
-    setSymbols((prev) =>
-      prev.map((s) =>
-        merged.some((i) => i.inventoryId === s.inventoryId) ? { ...s, inventory: true } : s
-      )
+    dispatch(setInventory(merged));
+    // Fix: get current symbols, compute new array, then dispatch
+    const currentSymbols = store.getState().app.symbols;
+    const updatedSymbols = currentSymbols.map((s) =>
+      merged.some((i) => i.inventoryId === s.inventoryId) ? { ...s, inventory: true } : s
     );
+    dispatch(setSymbols(updatedSymbols));
   };
 
   useEffect(() => {
@@ -213,7 +307,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   }, []);
 
   const filteredInventory = tagFilter === "All" ? inventory : inventory.filter((f) => f.tag === tagFilter);
-  const uniqueTags = useMemo(() => Array.from(new Set(inventory.map((f) => f.tag ?? "Untagged"))), [inventory]);
+  const uniqueTags = useMemo(() => Array.from(new Set(inventory.map((f) => String(f.tag ?? "Untagged")))), [inventory]);
 
   return (
     <Theme system="express" scale="medium" color="light">
@@ -261,7 +355,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
             <input
               placeholder="Enter tag for selected symbol"
               value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
+              onChange={(e) => dispatch(setNewTag(e.target.value))}
               style={{
                 padding: "6px 8px",
                 borderRadius: "4px",
@@ -303,7 +397,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
             <Button
               size="s"
               variant={editInventory ? "primary" : "secondary"}
-              onClick={() => setEditInventory(!editInventory)}
+              onClick={() => dispatch(setEditInventory(!editInventory))}
               style={{
                 borderRadius: 8,
                 fontWeight: 600,
@@ -318,7 +412,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
               variant="secondary"
               onClick={async () => {
                 await loadInventory();
-                setToast("Canvas refreshed.");
+                dispatch(setToast("Canvas refreshed."));
               }}
               style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}
             >
@@ -328,8 +422,8 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
               size="s"
               variant="secondary"
               onClick={() => {
-                setSymbols([]);
-                setToast("Canvas cleared.");
+                dispatch(clearSymbols());
+                dispatch(setToast("Canvas cleared."));
               }}
               style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}
             >
@@ -338,7 +432,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
             <select
               title="Filter Inventory"
               value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value)}
+              onChange={(e) => dispatch(setTagFilter(e.target.value))}
               style={{
                 border: "1px solid #d1d5db",
                 borderRadius: 8,
@@ -353,7 +447,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
               }}
             >
               <option value="All">All</option>
-              {uniqueTags.map((tag) => (
+              {uniqueTags.map((tag: string) => (
                 <option key={tag} value={tag}>
                   {tag}
                 </option>
@@ -363,7 +457,11 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
 
           <div className="flex gap-2 flex-wrap mt-2">
             {filteredInventory.map((inv) => (
-              <div key={inv.inventoryId} className="border border-gray-300 p-1 relative" onClick={() => handleInsertFromInventory(inv)}>
+              <div
+                key={inv.inventoryId}
+                className="border border-gray-300 p-1 relative"
+                onClick={() => handleInsertFromInventory(inv)}
+              >
                 <div className="cursor-pointer">
                   {inv.type === "rect" ? (
                     <svg width={30} height={20}>
@@ -382,7 +480,15 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                   ) : null}
                 </div>
                 {editInventory && !inv.isDefault && (
-                  <button onClick={(e) => { e.stopPropagation(); handleRemoveInventory(inv.inventoryId); }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRemoveInventory(inv.inventoryId);
+                    }}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                    aria-label="Remove from inventory"
+                  >
                     ×
                   </button>
                 )}
@@ -395,4 +501,19 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   );
 };
 
+export { store };
 export default App;
+
+// App.tsx now exports store and default App
+// In index.tsx, wrap <App /> with <Provider store={store}>
+// Example for index.tsx:
+// import React from "react";
+// import ReactDOM from "react-dom";
+// import App, { store } from "./components/App";
+// import { Provider } from "react-redux";
+// ReactDOM.render(
+//   <Provider store={store}>
+//     <App addOnUISdk={addOnUISdk} sandboxProxy={sandboxProxy} />
+//   </Provider>,
+//   document.getElementById("root")
+// );

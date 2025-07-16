@@ -2,7 +2,8 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { DocumentSandboxApi } from "../models/DocumentSandboxApi";
-import App from "./components/App";
+import App, { store } from "./components/App";
+import { Provider } from "react-redux";
 
 import addOnUISdk, { RuntimeType } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
 
@@ -18,5 +19,9 @@ addOnUISdk.ready.then(async () => {
     const sandboxProxy: DocumentSandboxApi = await runtime.apiProxy(RuntimeType.documentSandbox);
 
     const root = createRoot(document.getElementById("root"));
-    root.render(<App addOnUISdk={addOnUISdk} sandboxProxy={sandboxProxy} />);
+    root.render(
+        <Provider store={store}>
+            <App addOnUISdk={addOnUISdk} sandboxProxy={sandboxProxy} />
+        </Provider>
+    );
 });

@@ -29,6 +29,27 @@ function start(): void {
             // Add the rectangle to the document.
             const insertionParent = editor.context.insertionParent;
             insertionParent.children.append(rectangle);
+        },
+        createCircle: (radius = 50, x = 50, y = 50) => {
+            const ellipse = editor.createEllipse();
+            ellipse.rx = radius;
+            ellipse.ry = radius;
+            ellipse.translation = { x, y };
+            const color = { red: 0.2, green: 0.7, blue: 0.3, alpha: 1 };
+            const fill = editor.makeColorFill(color);
+            ellipse.fill = fill;
+            const insertionParent = editor.context.insertionParent;
+            insertionParent.children.append(ellipse);
+        },
+        createPolygon: (points = [{x:50,y:10},{x:90,y:90},{x:10,y:90}], color = {red:1,green:0.8,blue:0.5,alpha:1}) => {
+            // Convert points to SVG path string
+            const pathData = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')} Z`;
+            const path = editor.createPath(pathData);
+            path.translation = { x: 0, y: 0 };
+            const fill = editor.makeColorFill(color);
+            path.fill = fill;
+            const insertionParent = editor.context.insertionParent;
+            insertionParent.children.append(path);
         }
     };
 

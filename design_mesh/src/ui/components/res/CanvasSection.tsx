@@ -128,6 +128,10 @@ const CanvasSection: React.FC<CanvasProps> = ({
     </span>
   );
 
+  React.useEffect(() => {
+    console.log("Canvas symbols:", symbols);
+  }, [symbols]);
+
   return (
     <div className="mt-12" style={{ position: "relative" }}>
       {toast && (
@@ -139,11 +143,13 @@ const CanvasSection: React.FC<CanvasProps> = ({
         >
           <span style={{ flex: 1 }}>{toast}</span>
           <button
+            type="button"
             style={{
               position: "absolute", top: 6, right: 10, background: "none", border: "none", color: "#d32f2f", fontWeight: 700, fontSize: 18, cursor: "pointer"
             }}
-            onClick={() => setToast && setToast(null)}
+            onClick={() => { if (typeof setToast === 'function') setToast(null); }}
             title="Close"
+            aria-label="Close toast"
           >
             ×
           </button>
