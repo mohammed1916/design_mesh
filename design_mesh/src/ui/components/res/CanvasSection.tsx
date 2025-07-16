@@ -8,7 +8,7 @@ export type SymbolType = {
   y: number;
   width: number;
   height: number;
-  type: "rect" | "circle" | "polygon" | "image";
+  type: "rect" | "circle" | "polygon" | "image" | "historyIcon";
   src?: string;
   inventory?: boolean;
 };
@@ -66,7 +66,7 @@ const CanvasControls: React.FC<{
   </div>
 );
 
-const GRID_COLS = 4;
+const GRID_COLS = 2;
 const GRID_CELL_WIDTH = 120;
 const GRID_CELL_HEIGHT = 120;
 const GRID_GAP = 24;
@@ -240,6 +240,12 @@ const CanvasSection: React.FC<CanvasProps> = ({
                       {symbol.type === "polygon" && (
                         <svg width={80} height={80}>
                           <polygon points="40,10 70,70 10,70" fill={symbol.inventory ? "gold" : "#ffcc80"} stroke="#333" strokeWidth={2} />
+                        </svg>
+                      )}
+                      {symbol.type === "historyIcon" && (
+                        <svg width={80} height={80} viewBox="0 0 80 80">
+                          <circle cx="40" cy="40" r="28" fill={symbol.inventory ? "gold" : "#ffe082"} stroke="#333" strokeWidth={2} />
+                          <path d="M40 22 v18 l14 14" stroke="#333" strokeWidth="3" fill="none" />
                         </svg>
                       )}
                       {symbol.type === "image" && symbol.src && (

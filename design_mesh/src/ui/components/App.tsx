@@ -53,16 +53,16 @@ const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] 
 // Redux slice for symbols, inventory, tags, toast, selection
 const initialState = {
   symbols: [
-        {
-            "uuid": "884d68cc-e4c7-452e-bdf6-335a254201d9",
-            "inventoryId": "default-polygon",
-            "x": 50,
-            "y": 50,
-            "width": 100,
-            "height": 100,
-            "type": "polygon"
-        }
-    ] as SymbolType[],
+      {
+          "uuid":  uuidv4(),
+          "inventoryId": "default-history-icon",
+          "x": 50,
+          "y": 50,
+          "width": 100,
+          "height": 100,
+          "type": "historyIcon"
+      }
+  ] as SymbolType[],
   inventory: DEFAULT_INVENTORY as (SymbolType & { tag?: string; isDefault?: boolean })[],
   selectedId: null as string | null,
   selectMode: false,
@@ -118,7 +118,7 @@ const appSlice = createSlice({
     clearSymbols(state) {
       state.symbols = [
         {
-            "uuid": "884d68cc-e4c7-452e-bdf6-335a254201d9",
+            "uuid": uuidv4(),
             "inventoryId": "default-polygon",
             "x": 50,
             "y": 50,
@@ -519,7 +519,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                     <svg width={30} height={30}>
                       <polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" />
                     </svg>
-                  ) : inv.type === "image" && inv.src ? (
+                  )  : inv.type === "image" && inv.src ? (
                     <img src={inv.src} width={30} height={30} alt="Inventory" />
                   ) : null}
                 </div>
