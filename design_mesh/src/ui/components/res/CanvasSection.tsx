@@ -101,31 +101,33 @@ const CanvasSection: React.FC<CanvasProps> = ({
   };
 
   const renderInventoryStar = (symbol: SymbolType) => (
-    <span
-      style={{
-        position: "relative",
-        display: "inline-block",
-        cursor: "pointer",
-        userSelect: "none",
-        fontSize: 20,
-        color: isInInventory(symbol.inventoryId) ? "gold" : "#888",
-        transition: "color 0.2s",
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        // Add to inventory if not already present
-        if (!isInInventory(symbol.inventoryId)) {
-          // Find the symbol in symbols array
-          const sym = symbols.find((s) => s.uuid === symbol.uuid);
-          if (sym) {
-            onAddInventory(sym.uuid);
+    symbol.type !== "historyIcon" ? (
+      <span
+        style={{
+          position: "relative",
+          display: "inline-block",
+          cursor: "pointer",
+          userSelect: "none",
+          fontSize: 20,
+          color: isInInventory(symbol.inventoryId) ? "gold" : "#888",
+          transition: "color 0.9s",
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          // Add to inventory if not already present
+          if (!isInInventory(symbol.inventoryId)) {
+            // Find the symbol in symbols array
+            const sym = symbols.find((s) => s.uuid === symbol.uuid);
+            if (sym) {
+              onAddInventory(sym.uuid);
+            }
           }
-        }
-      }}
-      title={isInInventory(symbol.inventoryId) ? "In Inventory" : "Add to Inventory"}
-    >
-      ★
-    </span>
+        }}
+        title={isInInventory(symbol.inventoryId) ? "In Inventory" : "Add to Inventory"}
+      >
+        ★
+      </span>
+    ) : null
   );
 
   React.useEffect(() => {
@@ -269,6 +271,9 @@ const CanvasSection: React.FC<CanvasProps> = ({
                         >
                           ×
                         </button>
+                      )}
+                      {!inInventory && symbol.type !== "historyIcon" && (
+                        <div style={{ position: "absolute", top: 8, right: 12 }}>{renderInventoryStar(symbol)}</div>
                       )}
                     </div>
                   );
