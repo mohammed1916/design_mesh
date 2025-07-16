@@ -295,11 +295,11 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     if (DEFAULT_INVENTORY.some((d) => d.inventoryId === inventoryId)) return;
     const updated = inventory.filter((f) => f.inventoryId !== inventoryId);
     dispatch(setInventory(updated));
-    dispatch(
-      setSymbols((prev) =>
-        prev.map((s) => (s.inventoryId === inventoryId ? { ...s, inventory: false } : s))
-      )
+    const currentSymbols = store.getState().app.symbols;
+    const updatedSymbols = currentSymbols.map((s) =>
+      s.inventoryId === inventoryId ? { ...s, inventory: false } : s
     );
+    dispatch(setSymbols(updatedSymbols));
     await addOnUISdk.instance.clientStorage.setItem("inventory", updated);
   };
 
