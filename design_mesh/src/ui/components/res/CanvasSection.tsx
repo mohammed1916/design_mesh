@@ -147,7 +147,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
             style={{
               position: "absolute", top: 6, right: 10, background: "none", border: "none", color: "#d32f2f", fontWeight: 700, fontSize: 18, cursor: "pointer"
             }}
-            onClick={() => { if (typeof setToast === 'function') setToast(null); }}
+            onClick={() => setToast(null)}
             title="Close"
             aria-label="Close toast"
           >

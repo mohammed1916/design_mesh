@@ -348,6 +348,11 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     }
   };
 
+  // Wrapper for setToast to always dispatch Redux action
+  const setToastWrapper = (value: string | null) => {
+    dispatch(setToast(value));
+  };
+
   return (
     <Theme system="express" scale="medium" color="light">
       <div className="container">
@@ -386,7 +391,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           setSelectMode={setSelectMode}
           inventoryList={inventory.map((i) => ({ inventoryId: i.inventoryId }))}
           toast={toast}
-          setToast={setToast}
+          setToast={setToastWrapper}
         />
 
         {selectMode && selectedId && (
