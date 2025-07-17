@@ -35,7 +35,7 @@ const CanvasControls: React.FC<{
   onRequestClear: () => void;
 }> = ({ selectMode, setSelectMode, onRequestClear }) => (
   <div style={{ display: "flex", gap: 10, alignItems: "center", padding: 16 }}>
-    <button
+    {/* <button
       style={{
         padding: "6px 16px",
         borderRadius: 4,
@@ -48,7 +48,7 @@ const CanvasControls: React.FC<{
       onClick={() => setSelectMode((prev) => !prev)}
     >
       {selectMode ? "Done" : "Edit"}
-    </button>
+    </button> */}
     <button
       style={{
         padding: "6px 16px",
