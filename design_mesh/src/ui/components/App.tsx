@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 import { createSlice, configureStore } from "@reduxjs/toolkit";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
+import Select from "react-select";
 import "./App.css";
 
 // Default inventory shapes (rect, circle, polygon)
@@ -332,8 +333,16 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
     loadInventory();
   }, []);
 
-  const filteredInventory = tagFilter === "All" ? inventory : inventory.filter((f) => f.tag === tagFilter);
+  const filteredInventory = Array.isArray(tagFilter) && tagFilter.includes("All")
+    ? inventory
+    : Array.isArray(tagFilter)
+      ? inventory.filter((f) => tagFilter.includes(f.tag))
+      : inventory.filter((f) => f.tag === tagFilter);
   const uniqueTags = useMemo(() => Array.from(new Set(inventory.map((f) => String(f.tag ?? "Untagged")))), [inventory]);
+  const tagOptions = [
+    { value: "All", label: "All" },
+    ...uniqueTags.map((tag) => ({ value: tag, label: tag }))
+  ];
 
   // Wrapper for setSymbols to support both value and updater function (for CanvasSection compatibility)
   const setSymbolsWrapper = (updater: SymbolType[] | ((prev: SymbolType[]) => SymbolType[])) => {
@@ -395,12 +404,22 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
             <Button size="s" variant={editInventory ? "primary" : "secondary"} onClick={() => dispatch(setEditInventory(!editInventory))} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>{editInventory ? "Done" : "Edit"}</Button>
             <Button size="s" variant="secondary" onClick={async () => { await loadInventory(); dispatch(setToast("Canvas refreshed.")); }} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>Refresh Canvas</Button>
             <Button size="s" variant="secondary" onClick={() => { dispatch(clearSymbols()); dispatch(setToast("Canvas cleared.")); }} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>Clear Canvas</Button>
-            <select title="Filter Inventory" value={tagFilter} onChange={(e) => dispatch(setTagFilter(e.target.value))} className="inventory-select">
-              <option value="All">All</option>
-              {uniqueTags.map((tag: string) => (
-                <option key={tag} value={tag}>{tag}</option>
-              ))}
-            </select>
+            <div style={{ minWidth: 220, marginLeft: 8 }}>
+              <Select
+                isMulti
+                options={tagOptions}
+                value={tagOptions.filter((opt) => Array.isArray(tagFilter) && tagFilter.includes(opt.value))}
+                onChange={(selected) => {
+                  let values = selected.map((opt) => opt.value);
+                  if (values.includes("All")) {
+                    values = ["All"];
+                  }
+                  dispatch(setTagFilter(values));
+                }}
+                placeholder="Filter by tag(s)"
+                classNamePrefix="react-select"
+              />
+            </div>
           </div>
           {/* Add Tag functionality when editInventory is true and items are selected */}
           {editInventory && selectedIds.length > 0 && (
