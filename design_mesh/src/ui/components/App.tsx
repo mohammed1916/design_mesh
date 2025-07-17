@@ -67,7 +67,6 @@ const initialState = {
   ] as SymbolType[],
   inventory: DEFAULT_INVENTORY as (SymbolType & { tag?: string; isDefault?: boolean })[],
   selectedId: null as string | null,
-  selectMode: false,
   editInventory: false,
   newTag: "",
   tagFilter: "All",
@@ -101,9 +100,6 @@ const appSlice = createSlice({
     },
     setSelectedId(state, action) {
       state.selectedId = action.payload;
-    },
-    setSelectMode(state, action) {
-      state.selectMode = action.payload;
     },
     setEditInventory(state, action) {
       state.editInventory = action.payload;
@@ -144,7 +140,6 @@ const {
   addInventory,
   removeInventory,
   setSelectedId,
-  setSelectMode,
   setEditInventory,
   setNewTag,
   setTagFilter,
@@ -160,7 +155,6 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   const {
     inventory,
     selectedId,
-    selectMode,
     editInventory,
     newTag,
     tagFilter,
@@ -389,8 +383,6 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
           setSelectedId={setSelectedId}
           onAddInventory={handleAddInventory}
           onInsertSymbol={handleInsertFromInventory}
-          selectMode={selectMode}
-          setSelectMode={setSelectMode}
           inventoryList={inventory.map((i) => ({ inventoryId: i.inventoryId }))}
           toast={toast}
           setToast={setToastWrapper}
@@ -410,11 +402,25 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
               ))}
             </select>
           </div>
-
+          {/* Add Tag functionality when editInventory is true and an item is selected */}
+          {editInventory && selectedId && (
+            <div className="inventory-edit-row" style={{ display: "flex", gap: 10, alignItems: "center", margin: "16px 0" }}>
+              <input
+                placeholder="Enter tag for selected symbol"
+                value={newTag}
+                onChange={(e) => dispatch(setNewTag(e.target.value))}
+                className="inventory-input"
+                style={{ padding: "6px 8px", borderRadius: "4px", border: "1px solid #ccc", fontSize: "14px", minWidth: "200px" }}
+              />
+              <Button variant="primary" onClick={() => handleAddTag(selectedId, newTag)}>
+                Add Tag
+              </Button>
+            </div>
+          )}
           {/* Inventory grid - modern flex row, 3 per row */}
           <div className="inventory-grid">
             {filteredInventory.map((inv) => (
-              <div key={inv.inventoryId} className="inventory-card" onClick={() => handleInsertFromInventory(inv)}>
+              <div key={inv.inventoryId} className="inventory-card">
                 {/* Icon rendering */}
                 {inv.type === "rect" ? (
                   <svg width={30} height={20}><rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" /></svg>
@@ -425,9 +431,32 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                 ) : inv.type === "image" && inv.src ? (
                   <img src={inv.src} width={30} height={30} alt="Inventory" />
                 ) : null}
+                {/* Select button in edit mode */}
+                {editInventory && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dispatch(setSelectedId(inv.uuid));
+                    }}
+                    className={`select-inventory-btn-modern${selectedId === inv.uuid ? " selected" : ""}`}
+                    aria-label="Select inventory item"
+                    style={{ position: "absolute", top: 2, left: 6, background: selectedId === inv.uuid ? "#1976d2" : "#eee", color: selectedId === inv.uuid ? "#fff" : "#333", border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+                  >
+                    ✓
+                  </button>
+                )}
                 {/* Remove button in edit mode */}
                 {editInventory && !inv.isDefault && (
                   <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveInventory(inv.inventoryId); }} className="remove-inventory-btn-modern" aria-label="Remove from inventory">×</button>
+                )}
+                {/* Only allow add to document when not in edit mode */}
+                {!editInventory && (
+                  <div
+                    className="inventory-card-overlay"
+                    onClick={() => handleInsertFromInventory(inv)}
+                    style={{ position: "absolute", inset: 0, cursor: "pointer", borderRadius: 14, zIndex: 1, background: "rgba(0,0,0,0)" }}
+                  />
                 )}
               </div>
             ))}

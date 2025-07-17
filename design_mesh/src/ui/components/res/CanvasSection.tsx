@@ -20,8 +20,6 @@ interface CanvasProps {
   setSelectedId: (id: string | null) => void;
   onAddInventory: (inventoryId: string) => void;
   onInsertSymbol: (symbol: SymbolType) => void;
-  selectMode: boolean;
-  setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
   inventoryList?: { inventoryId: string }[]; // Pass inventory list for star logic
   toast?: string | null;
   setToast?: React.Dispatch<React.SetStateAction<string | null>>;
@@ -29,26 +27,10 @@ interface CanvasProps {
 
 // CanvasControls component for Edit/Done and Clear buttons
 const CanvasControls: React.FC<{
-  selectMode: boolean;
-  setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
   setSymbols: React.Dispatch<React.SetStateAction<SymbolType[]>>;
   onRequestClear: () => void;
-}> = ({ selectMode, setSelectMode, onRequestClear }) => (
+}> = ({ setSymbols, onRequestClear }) => (
   <div style={{ display: "flex", gap: 10, alignItems: "center", padding: 16 }}>
-    {/* <button
-      style={{
-        padding: "6px 16px",
-        borderRadius: 4,
-        border: 0,
-        background: selectMode ? "#1976d2" : "#eee",
-        color: selectMode ? "#fff" : "#333",
-        fontWeight: 500,
-        cursor: "pointer",
-      }}
-      onClick={() => setSelectMode((prev) => !prev)}
-    >
-      {selectMode ? "Done" : "Edit"}
-    </button> */}
     <button
       style={{
         padding: "6px 16px",
@@ -78,8 +60,6 @@ const CanvasSection: React.FC<CanvasProps> = ({
   setSelectedId,
   onAddInventory,
   onInsertSymbol,
-  selectMode,
-  setSelectMode,
   inventoryList = [],
   toast,
   setToast,
@@ -191,7 +171,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
             className="overflow-hidden"
             >
               <div className="p-4 bg-white rounded-b-xl border-t">
-            <CanvasControls selectMode={selectMode} setSelectMode={setSelectMode} setSymbols={setSymbols} onRequestClear={() => setShowClearConfirm(true)} />
+            <CanvasControls setSymbols={setSymbols} onRequestClear={() => setShowClearConfirm(true)} />
               <div
                 style={{
                   display: "grid",
