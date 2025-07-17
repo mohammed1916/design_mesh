@@ -394,25 +394,6 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
           setToast={setToastWrapper}
         />
 
-        {selectMode && selectedId && (
-          <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "center" }}>
-            <input
-              placeholder="Enter tag for selected symbol"
-              value={newTag}
-              onChange={(e) => dispatch(setNewTag(e.target.value))}
-              style={{
-                padding: "6px 8px",
-                borderRadius: "4px",
-                border: "1px solid #ccc",
-                fontSize: "14px",
-                minWidth: "200px",
-              }}
-            />
-            <Button variant="primary" onClick={() => handleAddInventory(selectedId!)}>
-              📦 Add to Inventory
-            </Button>
-          </div>
-        )}
 
         <div className="mt-12">
           <div
@@ -426,7 +407,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
               padding: "18px 24px 12px 24px",
               marginBottom: 12,
             }}
-          >
+            >
             <h4
               style={{
                 fontSize: 20,
@@ -459,7 +440,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                 dispatch(setToast("Canvas refreshed."));
               }}
               style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}
-            >
+              >
               Refresh Canvas
             </Button>
             <Button
@@ -470,7 +451,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                 dispatch(setToast("Canvas cleared."));
               }}
               style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}
-            >
+              >
               Clear Canvas
             </Button>
             <select
@@ -489,7 +470,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                 outline: "none",
                 transition: "border 0.2s",
               }}
-            >
+              >
               <option value="All">All</option>
               {uniqueTags.map((tag: string) => (
                 <option key={tag} value={tag}>
@@ -498,15 +479,33 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
               ))}
             </select>
           </div>
+              {editInventory &&(
+                <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "center" }}>
+                  <input
+                    placeholder="Enter tag for selected symbol"
+                    value={newTag}
+                    onChange={(e) => dispatch(setNewTag(e.target.value))}
+                    style={{
+                      padding: "6px 8px",
+                      borderRadius: "4px",
+                      border: "1px solid #ccc",
+                      fontSize: "14px",
+                      minWidth: "200px",
+                    }}
+                  />
+                  <Button variant="primary" onClick={() => handleAddInventory(selectedId!)}>
+                    📦 Add to Inventory
+                  </Button>
+                </div>
+              )}
 
-          <div className="flex gap-2 flex-wrap mt-2">
+          <div style={{ marginTop: 12, background: "#f8f9fa", borderRadius: 12 , padding: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.04)", display: "flex", gap: 10, alignItems: "center" }}>
             {filteredInventory.map((inv) => (
               <div
                 key={inv.inventoryId}
-                className="border border-gray-300 p-1 relative"
-                onClick={() => handleInsertFromInventory(inv)}
+                className="border border-gray-300 p-1 relative w-12 h-12 flex items-center justify-center"
+                onClick={() => !editInventory && handleInsertFromInventory(inv)}
               >
-                <div className="cursor-pointer">
                   {inv.type === "rect" ? (
                     <svg width={30} height={20}>
                       <rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" />
@@ -519,10 +518,9 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                     <svg width={30} height={30}>
                       <polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" />
                     </svg>
-                  )  : inv.type === "image" && inv.src ? (
+                  ) : inv.type === "image" && inv.src ? (
                     <img src={inv.src} width={30} height={30} alt="Inventory" />
                   ) : null}
-                </div>
                 {editInventory && !inv.isDefault && (
                   <button
                     type="button"
@@ -539,6 +537,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
               </div>
             ))}
           </div>
+
         </div>
       </div>
     </Theme>
