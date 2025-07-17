@@ -3,6 +3,16 @@
     "name": "Design Mesh",
     "version": "1.0.0",
     "manifestVersion": 2,
+    "description": "A modern design mesh add-on for Adobe Express, featuring inventory, tagging, and symbol management.",
+    "author": "Neuro Teem",
+    "icons": {
+        "128": "design_mesh/src/assets/developer_hive_logo_only.png.png"
+    },
+    "categories": [
+        "Design",
+        "Productivity",
+        "Graphics"
+    ],
     "requirements": {
         "apps": [
             {
