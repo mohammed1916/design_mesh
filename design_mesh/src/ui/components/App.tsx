@@ -303,6 +303,16 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     await addOnUISdk.instance.clientStorage.setItem("inventory", updated);
   };
 
+  // Add new handler for tagging inventory
+  const handleAddTag = (uuid: string, tag: string) => {
+    if (!tag.trim()) return;
+    const updatedInventory = inventory.map((item) =>
+      item.uuid === uuid ? { ...item, tag: tag.trim() } : item
+    );
+    dispatch(setInventory(updatedInventory));
+    dispatch(setNewTag(""));
+  };
+
   // Load inventory: ensure default shapes always present
   const loadInventory = async () => {
     const stored = (await addOnUISdk.instance.clientStorage.getItem("inventory")) as
@@ -356,8 +366,8 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   return (
     <Theme system="express" scale="medium" color="light">
       <div className="container">
-        <div className="flex p-4 mb-12">
-          <div style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "center" }}>
+        <div className="header-row">
+          <div className="shape-row">
             <div onClick={() => handleInsertShape("rect")}>
               <svg width={40} height={40}>
                 <rect x={5} y={10} width={30} height={20} fill="#90caf9" stroke="#333" strokeWidth={2} />
@@ -375,7 +385,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
             </div>
             <label>
               <Button size="m">Upload</Button>
-              <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload} />
+              <input type="file" accept="image/*" className="file-input-hidden" onChange={handleUpload} />
             </label>
           </div>
         </div>
@@ -395,40 +405,14 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
         />
 
 
-        <div className="mt-12">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              background: "#f8f9fa",
-              borderRadius: 12,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-              padding: "18px 24px 12px 24px",
-              marginBottom: 12,
-            }}
-            >
-            <h4
-              style={{
-                fontSize: 20,
-                fontWeight: 700,
-                margin: 0,
-                color: "#222",
-                letterSpacing: 0.2,
-              }}
-            >
-              Inventory
-            </h4>
+        <div className="inventory-section">
+          <div className="inventory-panel">
+            <h4 className="inventory-title">Inventory</h4>
             <Button
               size="s"
               variant={editInventory ? "primary" : "secondary"}
               onClick={() => dispatch(setEditInventory(!editInventory))}
-              style={{
-                borderRadius: 8,
-                fontWeight: 600,
-                minWidth: 64,
-                marginLeft: 8,
-              }}
+              className="inventory-btn"
             >
               {editInventory ? "Done" : "Edit"}
             </Button>
@@ -439,8 +423,8 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                 await loadInventory();
                 dispatch(setToast("Canvas refreshed."));
               }}
-              style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}
-              >
+              className="inventory-btn"
+            >
               Refresh Canvas
             </Button>
             <Button
@@ -450,77 +434,73 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                 dispatch(clearSymbols());
                 dispatch(setToast("Canvas cleared."));
               }}
-              style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}
-              >
+              className="inventory-btn"
+            >
               Clear Canvas
             </Button>
             <select
               title="Filter Inventory"
               value={tagFilter}
               onChange={(e) => dispatch(setTagFilter(e.target.value))}
-              style={{
-                border: "1px solid #d1d5db",
-                borderRadius: 8,
-                padding: "6px 16px",
-                fontSize: 15,
-                background: "#fff",
-                color: "#333",
-                marginLeft: 12,
-                boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                outline: "none",
-                transition: "border 0.2s",
-              }}
-              >
+              className="inventory-select"
+            >
               <option value="All">All</option>
               {uniqueTags.map((tag: string) => (
-                <option key={tag} value={tag}>
-                  {tag}
-                </option>
+                <option key={tag} value={tag}>{tag}</option>
               ))}
             </select>
           </div>
-              {editInventory &&(
-                <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "center" }}>
-                  <input
-                    placeholder="Enter tag for selected symbol"
-                    value={newTag}
-                    onChange={(e) => dispatch(setNewTag(e.target.value))}
-                    style={{
-                      padding: "6px 8px",
-                      borderRadius: "4px",
-                      border: "1px solid #ccc",
-                      fontSize: "14px",
-                      minWidth: "200px",
-                    }}
-                  />
-                  <Button variant="primary" onClick={() => handleAddInventory(selectedId!)}>
-                    📦 Add to Inventory
-                  </Button>
-                </div>
-              )}
-
-          <div style={{ marginTop: 12, background: "#f8f9fa", borderRadius: 12 , padding: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.04)", display: "flex", gap: 10, alignItems: "center" }}>
+          {editInventory && selectedId && (
+            <div className="inventory-edit-row">
+              <input
+                placeholder="Enter tag for selected symbol"
+                value={newTag}
+                onChange={(e) => dispatch(setNewTag(e.target.value))}
+                className="inventory-input"
+              />
+              <Button variant="primary" onClick={() => handleAddTag(selectedId!, newTag)}>
+                Add Tag
+              </Button>
+            </div>
+          )}
+          <div className="inventory-list">
             {filteredInventory.map((inv) => (
               <div
                 key={inv.inventoryId}
-                className="border border-gray-300 p-1 relative w-12 h-12 flex items-center justify-center"
-                onClick={() => !editInventory && handleInsertFromInventory(inv)}
+                className={`inventory-item ${editInventory ? "pointer" : "default-cursor"} ${editInventory && selectedId === inv.uuid ? "selected-inventory" : ""}`}
+                onClick={() => {
+                  if (editInventory) {
+                    dispatch(setSelectedId(inv.uuid));
+                  } else {
+                    handleInsertFromInventory(inv);
+                  }
+                }}
               >
-                  {inv.type === "rect" ? (
-                    <svg width={30} height={20}>
-                      <rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" />
+                {/* Selection indicator in edit mode */}
+                {editInventory && selectedId === inv.uuid && (
+                  <span className="selected-x-indicator">
+                    <svg viewBox="0 0 24 24">
+                      <line x1="6" y1="6" x2="18" y2="18" className="x-mark" />
+                      <line x1="18" y1="6" x2="6" y2="18" className="x-mark" />
                     </svg>
-                  ) : inv.type === "circle" ? (
-                    <svg width={30} height={30}>
-                      <circle cx={15} cy={15} r={13} fill="gold" stroke="#333" />
-                    </svg>
-                  ) : inv.type === "polygon" ? (
-                    <svg width={30} height={30}>
-                      <polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" />
-                    </svg>
-                  ) : inv.type === "image" && inv.src ? (
-                    <img src={inv.src} width={30} height={30} alt="Inventory" />
-                  ) : null}
+                  </span>
+                )}
+                {/* ...existing icon rendering... */}
+                {inv.type === "rect" ? (
+                  <svg width={30} height={20}>
+                    <rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" />
+                  </svg>
+                ) : inv.type === "circle" ? (
+                  <svg width={30} height={30}>
+                    <circle cx={15} cy={15} r={13} fill="gold" stroke="#333" />
+                  </svg>
+                ) : inv.type === "polygon" ? (
+                  <svg width={30} height={30}>
+                    <polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" />
+                  </svg>
+                ) : inv.type === "image" && inv.src ? (
+                  <img src={inv.src} width={30} height={30} alt="Inventory" />
+                ) : null}
                 {editInventory && !inv.isDefault && (
                   <button
                     type="button"
@@ -528,7 +508,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
                       e.stopPropagation();
                       handleRemoveInventory(inv.inventoryId);
                     }}
-                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                    className="remove-inventory-btn"
                     aria-label="Remove from inventory"
                   >
                     ×

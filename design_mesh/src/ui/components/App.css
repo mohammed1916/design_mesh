@@ -4,3 +4,212 @@
     display: flex;
     flex-direction: column;
 }
+
+/* Add wiggle animation for selection indicator */
+.wiggle-indicator {
+  animation: wiggle 0.5s infinite alternate;
+}
+
+@keyframes wiggle {
+  0% { transform: translateX(-50%) rotate(-8deg); }
+  100% { transform: translateX(-50%) rotate(8deg); }
+}
+
+/* General container and flex layouts */
+.flex {
+  display: flex;
+}
+.p-4 {
+  padding: 1rem;
+}
+.mb-12 {
+  margin-bottom: 3rem;
+}
+.mt-12 {
+  margin-top: 3rem;
+}
+.align-center {
+  align-items: center;
+}
+.gap-10 {
+  gap: 10px;
+}
+.gap-16 {
+  gap: 16px;
+}
+
+/* Header and rows */
+.header-row {
+  display: flex;
+  flex-direction: row;
+  padding: 24px;
+  margin-bottom: 48px;
+  align-items: center;
+  gap: 10px;
+}
+
+.shape-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* Inventory panel styles */
+.inventory-panel {
+  background: #f8f9fa;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 18px 24px 12px 24px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.inventory-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  color: #222;
+  letter-spacing: 0.2px;
+}
+
+.inventory-btn {
+  border-radius: 8px;
+  font-weight: 600;
+  min-width: 64px;
+  margin-left: 8px;
+}
+
+.inventory-select {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 15px;
+  background: #fff;
+  color: #333;
+  margin-left: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  outline: none;
+  transition: border 0.2s;
+}
+
+.inventory-edit-row {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.inventory-input {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.inventory-list {
+  margin-top: 12px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.inventory-item {
+  border: 1px solid #d1d5db;
+  padding: 4px;
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+.pointer {
+  cursor: pointer;
+}
+.default-cursor {
+  cursor: default;
+}
+
+/* Selection indicator already present as .wiggle-indicator */
+.wiggle-indicator {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  animation: wiggle 0.5s infinite alternate;
+}
+
+@keyframes wiggle {
+  0% { transform: translateX(-50%) rotate(-8deg); }
+  100% { transform: translateX(-50%) rotate(8deg); }
+}
+
+/* Remove button for inventory */
+.remove-inventory-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f44336;
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Hide file input */
+.file-input-hidden {
+  display: none;
+}
+
+/* Selection indicator for inventory edit mode: highlight X mark */
+.selected-x-indicator {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.selected-x-indicator svg {
+  width: 24px;
+  height: 24px;
+}
+.selected-x-indicator .x-mark {
+  stroke: #f44336;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+.selected-x-indicator {
+  animation: wiggle 0.5s infinite alternate;
+}
+.selected-inventory {
+  box-shadow: 0 0 0 3px #f4433644;
+  border-color: #f44336;
+}
+
+/* Inventory section margin */
+.inventory-section {
+  margin-top: 48px;
+}
