@@ -117,18 +117,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
 
   return (
     <div className="mt-12" style={{ position: "relative" }}>
-      {/* Scroll toggle switch */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <label style={{ fontWeight: 500, fontSize: 15 }}>
-          <input
-            type="checkbox"
-            checked={enableScroll}
-            onChange={e => setEnableScroll(e.target.checked)}
-            style={{ marginRight: 8 }}
-          />
-          Enable Scroll
-        </label>
-      </div>
+
       {toast && (
         <div
           style={{
@@ -185,6 +174,18 @@ const CanvasSection: React.FC<CanvasProps> = ({
             >
               <div className="p-4 bg-white rounded-b-xl border-t">
             <CanvasControls setSymbols={setSymbols} onRequestClear={() => setShowClearConfirm(true)} />
+              {/* Scroll toggle switch */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <label style={{ fontWeight: 500, fontSize: 15 }}>
+                  <input
+                    type="checkbox"
+                    checked={enableScroll}
+                    onChange={e => setEnableScroll(e.target.checked)}
+                    style={{ marginRight: 8 }}
+                  />
+                  Enable Scroll
+                </label>
+              </div>
               <div
                 style={{
                   display: "grid",
