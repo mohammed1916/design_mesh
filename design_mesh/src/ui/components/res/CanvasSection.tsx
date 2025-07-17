@@ -66,6 +66,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
 }) => {
   const [open, setOpen] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [enableScroll, setEnableScroll] = useState(false); // <-- scroll toggle
 
   // Helper to check if a symbol is in inventory by inventoryId
   const isInInventory = (inventoryId: string) =>
@@ -116,6 +117,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
 
   return (
     <div className="mt-12" style={{ position: "relative" }}>
+
       {toast && (
         <div
           style={{
@@ -172,6 +174,18 @@ const CanvasSection: React.FC<CanvasProps> = ({
             >
               <div className="p-4 bg-white rounded-b-xl border-t">
             <CanvasControls setSymbols={setSymbols} onRequestClear={() => setShowClearConfirm(true)} />
+              {/* Scroll toggle switch */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <label style={{ fontWeight: 500, fontSize: 15 }}>
+                  <input
+                    type="checkbox"
+                    checked={enableScroll}
+                    onChange={e => setEnableScroll(e.target.checked)}
+                    style={{ marginRight: 8 }}
+                  />
+                  Enable Scroll
+                </label>
+              </div>
               <div
                 style={{
                   display: "grid",
@@ -184,6 +198,8 @@ const CanvasSection: React.FC<CanvasProps> = ({
                   minHeight: 400,
                   boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
                   border: "1.5px solid #e0e7ef",
+                  overflow: enableScroll ? "auto" : "visible",
+                  maxHeight: enableScroll ? 500 : "none",
                 }}
               >
                 {symbols.map((symbol) => {
