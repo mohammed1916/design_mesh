@@ -66,7 +66,7 @@ const initialState = {
       }
   ] as SymbolType[],
   inventory: DEFAULT_INVENTORY as (SymbolType & { tag?: string; isDefault?: boolean })[],
-  selectedId: null as string | null,
+  selectedIds: [] as string[], // <-- changed from selectedId
   editInventory: false,
   newTag: "",
   tagFilter: "All",
@@ -98,8 +98,8 @@ const appSlice = createSlice({
         s.inventoryId === action.payload ? { ...s, inventory: false } : s
       );
     },
-    setSelectedId(state, action) {
-      state.selectedId = action.payload;
+    setSelectedIds(state, action) {
+      state.selectedIds = action.payload;
     },
     setEditInventory(state, action) {
       state.editInventory = action.payload;
@@ -139,7 +139,7 @@ const {
   setInventory,
   addInventory,
   removeInventory,
-  setSelectedId,
+  setSelectedIds,
   setEditInventory,
   setNewTag,
   setTagFilter,
@@ -154,7 +154,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   const symbols = Array.isArray(appState.symbols) ? appState.symbols : [];
   const {
     inventory,
-    selectedId,
+    selectedIds,
     editInventory,
     newTag,
     tagFilter,
@@ -300,10 +300,10 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   };
 
   // Add new handler for tagging inventory
-  const handleAddTag = (uuid: string, tag: string) => {
+  const handleAddTag = (uuids: string[], tag: string) => {
     if (!tag.trim()) return;
     const updatedInventory = inventory.map((item) =>
-      item.uuid === uuid ? { ...item, tag: tag.trim() } : item
+      uuids.includes(item.uuid) ? { ...item, tag: tag.trim() } : item
     );
     dispatch(setInventory(updatedInventory));
     dispatch(setNewTag(""));
@@ -379,8 +379,8 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
         <CanvasSection
           symbols={symbols}
           setSymbols={setSymbolsWrapper}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
+          selectedId={selectedIds}
+          setSelectedId={setSelectedIds}
           onAddInventory={handleAddInventory}
           onInsertSymbol={handleInsertFromInventory}
           inventoryList={inventory.map((i) => ({ inventoryId: i.inventoryId }))}
@@ -402,17 +402,17 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
               ))}
             </select>
           </div>
-          {/* Add Tag functionality when editInventory is true and an item is selected */}
-          {editInventory && selectedId && (
+          {/* Add Tag functionality when editInventory is true and items are selected */}
+          {editInventory && selectedIds.length > 0 && (
             <div className="inventory-edit-row" style={{ display: "flex", gap: 10, alignItems: "center", margin: "16px 0" }}>
               <input
-                placeholder="Enter tag for selected symbol"
+                placeholder="Enter tag for selected symbol(s)"
                 value={newTag}
                 onChange={(e) => dispatch(setNewTag(e.target.value))}
                 className="inventory-input"
                 style={{ padding: "6px 8px", borderRadius: "4px", border: "1px solid #ccc", fontSize: "14px", minWidth: "200px" }}
               />
-              <Button variant="primary" onClick={() => handleAddTag(selectedId, newTag)}>
+              <Button variant="primary" onClick={() => handleAddTag(selectedIds, newTag)}>
                 Add Tag
               </Button>
             </div>
@@ -437,11 +437,15 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                        dispatch(setSelectedId(selectedId === inv.uuid ? null : inv.uuid));
+                      const idx = selectedIds.indexOf(inv.uuid);
+                      let updated;
+                      if (idx === -1) updated = [...selectedIds, inv.uuid];
+                      else updated = selectedIds.filter((id) => id !== inv.uuid);
+                      dispatch(setSelectedIds(updated));
                     }}
-                    className={`select-inventory-btn-modern${selectedId === inv.uuid ? " selected" : ""}`}
+                    className={`select-inventory-btn-modern${selectedIds.includes(inv.uuid) ? " selected" : ""}`}
                     aria-label="Select inventory item"
-                    style={{ position: "absolute", top: 2, left: 6, background: selectedId === inv.uuid ? "#1976d2" : "#eee", color: selectedId === inv.uuid ? "#fff" : "#333", border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+                    style={{ position: "absolute", top: 2, left: 6, background: selectedIds.includes(inv.uuid) ? "#1976d2" : "#eee", color: selectedIds.includes(inv.uuid) ? "#fff" : "#333", border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
                   >
                     ✓
                   </button>
