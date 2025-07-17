@@ -437,7 +437,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      dispatch(setSelectedId(inv.uuid));
+                        dispatch(setSelectedId(selectedId === inv.uuid ? null : inv.uuid));
                     }}
                     className={`select-inventory-btn-modern${selectedId === inv.uuid ? " selected" : ""}`}
                     aria-label="Select inventory item"
