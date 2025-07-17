@@ -50,7 +50,23 @@ function start(): void {
             path.fill = fill;
             const insertionParent = editor.context.insertionParent;
             insertionParent.children.append(path);
+        },
+        createHistoryIcon: () => {
+            // SVG path for a simple clock/history icon
+            const pathData = "M50,10 A40,40 0 1,1 49.9,10 M50,50 L50,30 M50,50 L70,50";
+            const icon = editor.createPath(pathData);
+            icon.translation = { x: 20, y: 20 };
+            icon.fill = editor.makeColorFill({ red: 0, green: 0, blue: 0, alpha: 1 });
+            const insertionParent = editor.context.insertionParent;
+            insertionParent.children.append(icon);
+
+            // Optionally add text label
+            const info = editor.createText();
+            info.text = "History";
+            info.translation = { x: 70, y: 30 };
+            insertionParent.children.append(info);
         }
+
     };
 
     // Expose `sandboxApi` to the UI runtime.

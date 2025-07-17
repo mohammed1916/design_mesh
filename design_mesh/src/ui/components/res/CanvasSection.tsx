@@ -8,7 +8,7 @@ export type SymbolType = {
   y: number;
   width: number;
   height: number;
-  type: "rect" | "circle" | "polygon" | "image";
+  type: "rect" | "circle" | "polygon" | "image" | "historyIcon";
   src?: string;
   inventory?: boolean;
 };
@@ -20,8 +20,6 @@ interface CanvasProps {
   setSelectedId: (id: string | null) => void;
   onAddInventory: (inventoryId: string) => void;
   onInsertSymbol: (symbol: SymbolType) => void;
-  selectMode: boolean;
-  setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
   inventoryList?: { inventoryId: string }[]; // Pass inventory list for star logic
   toast?: string | null;
   setToast?: React.Dispatch<React.SetStateAction<string | null>>;
@@ -29,26 +27,10 @@ interface CanvasProps {
 
 // CanvasControls component for Edit/Done and Clear buttons
 const CanvasControls: React.FC<{
-  selectMode: boolean;
-  setSelectMode: React.Dispatch<React.SetStateAction<boolean>>;
   setSymbols: React.Dispatch<React.SetStateAction<SymbolType[]>>;
   onRequestClear: () => void;
-}> = ({ selectMode, setSelectMode, onRequestClear }) => (
+}> = ({ setSymbols, onRequestClear }) => (
   <div style={{ display: "flex", gap: 10, alignItems: "center", padding: 16 }}>
-    <button
-      style={{
-        padding: "6px 16px",
-        borderRadius: 4,
-        border: 0,
-        background: selectMode ? "#1976d2" : "#eee",
-        color: selectMode ? "#fff" : "#333",
-        fontWeight: 500,
-        cursor: "pointer",
-      }}
-      onClick={() => setSelectMode((prev) => !prev)}
-    >
-      {selectMode ? "Done" : "Edit"}
-    </button>
     <button
       style={{
         padding: "6px 16px",
@@ -66,7 +48,7 @@ const CanvasControls: React.FC<{
   </div>
 );
 
-const GRID_COLS = 4;
+const GRID_COLS = 2;
 const GRID_CELL_WIDTH = 120;
 const GRID_CELL_HEIGHT = 120;
 const GRID_GAP = 24;
@@ -78,14 +60,13 @@ const CanvasSection: React.FC<CanvasProps> = ({
   setSelectedId,
   onAddInventory,
   onInsertSymbol,
-  selectMode,
-  setSelectMode,
   inventoryList = [],
   toast,
   setToast,
 }) => {
   const [open, setOpen] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [enableScroll, setEnableScroll] = useState(false); // <-- scroll toggle
 
   // Helper to check if a symbol is in inventory by inventoryId
   const isInInventory = (inventoryId: string) =>
@@ -101,31 +82,33 @@ const CanvasSection: React.FC<CanvasProps> = ({
   };
 
   const renderInventoryStar = (symbol: SymbolType) => (
-    <span
-      style={{
-        position: "relative",
-        display: "inline-block",
-        cursor: "pointer",
-        userSelect: "none",
-        fontSize: 20,
-        color: isInInventory(symbol.inventoryId) ? "gold" : "#888",
-        transition: "color 0.2s",
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        // Add to inventory if not already present
-        if (!isInInventory(symbol.inventoryId)) {
-          // Find the symbol in symbols array
-          const sym = symbols.find((s) => s.uuid === symbol.uuid);
-          if (sym) {
-            onAddInventory(sym.uuid);
+    symbol.type !== "historyIcon" ? (
+      <span
+        style={{
+          position: "relative",
+          display: "inline-block",
+          cursor: "pointer",
+          userSelect: "none",
+          fontSize: 20,
+          color: isInInventory(symbol.inventoryId) ? "gold" : "#888",
+          transition: "color 0.9s",
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          // Add to inventory if not already present
+          if (!isInInventory(symbol.inventoryId)) {
+            // Find the symbol in symbols array
+            const sym = symbols.find((s) => s.uuid === symbol.uuid);
+            if (sym) {
+              onAddInventory(sym.uuid);
+            }
           }
-        }
-      }}
-      title={isInInventory(symbol.inventoryId) ? "In Inventory" : "Add to Inventory"}
-    >
-      ★
-    </span>
+        }}
+        title={isInInventory(symbol.inventoryId) ? "In Inventory" : "Add to Inventory"}
+      >
+        ★
+      </span>
+    ) : null
   );
 
   React.useEffect(() => {
@@ -134,6 +117,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
 
   return (
     <div className="mt-12" style={{ position: "relative" }}>
+
       {toast && (
         <div
           style={{
@@ -147,7 +131,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
             style={{
               position: "absolute", top: 6, right: 10, background: "none", border: "none", color: "#d32f2f", fontWeight: 700, fontSize: 18, cursor: "pointer"
             }}
-            onClick={() => { if (typeof setToast === 'function') setToast(null); }}
+            onClick={() => setToast(null)}
             title="Close"
             aria-label="Close toast"
           >
@@ -189,7 +173,19 @@ const CanvasSection: React.FC<CanvasProps> = ({
             className="overflow-hidden"
             >
               <div className="p-4 bg-white rounded-b-xl border-t">
-            <CanvasControls selectMode={selectMode} setSelectMode={setSelectMode} setSymbols={setSymbols} onRequestClear={() => setShowClearConfirm(true)} />
+            <CanvasControls setSymbols={setSymbols} onRequestClear={() => setShowClearConfirm(true)} />
+              {/* Scroll toggle switch */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                <label style={{ fontWeight: 500, fontSize: 15 }}>
+                  <input
+                    type="checkbox"
+                    checked={enableScroll}
+                    onChange={e => setEnableScroll(e.target.checked)}
+                    style={{ marginRight: 8 }}
+                  />
+                  Enable Scroll
+                </label>
+              </div>
               <div
                 style={{
                   display: "grid",
@@ -202,6 +198,8 @@ const CanvasSection: React.FC<CanvasProps> = ({
                   minHeight: 400,
                   boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
                   border: "1.5px solid #e0e7ef",
+                  overflow: enableScroll ? "auto" : "visible",
+                  maxHeight: enableScroll ? 500 : "none",
                 }}
               >
                 {symbols.map((symbol) => {
@@ -226,7 +224,11 @@ const CanvasSection: React.FC<CanvasProps> = ({
                     setSymbols((prev) => prev.filter((s) => s.uuid !== symbol.uuid));
                   };
                   return (
-                    <div key={symbol.uuid} style={cellStyle} onClick={handleInsert}>
+                    <div
+                      key={symbol.uuid}
+                      style={cellStyle}
+                      onClick={symbol.type !== "historyIcon" ? handleInsert : undefined}
+                    >
                       {symbol.type === "rect" && (
                         <svg width={80} height={80}>
                           <rect x={10} y={20} width={60} height={40} fill={symbol.inventory ? "gold" : "#90caf9"} stroke="#333" strokeWidth={2} rx={12} />
@@ -241,20 +243,34 @@ const CanvasSection: React.FC<CanvasProps> = ({
                         <svg width={80} height={80}>
                           <polygon points="40,10 70,70 10,70" fill={symbol.inventory ? "gold" : "#ffcc80"} stroke="#333" strokeWidth={2} />
                         </svg>
-                      )}
-                      {symbol.type === "image" && symbol.src && (
+                        )}
+                        {symbol.type === "historyIcon" && (
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: 80, height: 80, pointerEvents: "none", opacity: 0.7 }}>
+                              <svg width={80} height={80} viewBox="0 0 80 80">
+                                <circle cx="40" cy="40" r="28" fill={symbol.inventory ? "gold" : "#ffe082"} stroke="#333" strokeWidth={2} />
+                                <path d="M40 22 v18 l14 14" stroke="#333" strokeWidth="3" fill="none" />
+                              </svg>
+                              <div style={{ fontSize: 12, color: "#888", textAlign: "center", marginTop: 8 }}>
+                                Your history appears here
+                              </div>
+                            </div>
+                          )}
+                        {symbol.type === "image" && symbol.src && (
                         <img src={symbol.src} alt="img" style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", border: "1.5px solid #bbb", boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }} />
+                        )}
+
+                      {symbol.type !== "historyIcon" && (
+                        <button
+                          style={{ position: "absolute", bottom: 8, right: 12, background: "#fffbe6", color: "#d32f2f", border: "1px solid #d6c585", borderRadius: 8, padding: "2px 10px", fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+                          onClick={handleRemove}
+                          title="Remove from canvas"
+                        >
+                          ×
+                        </button>
                       )}
-                      {!inInventory && (
+                      {!inInventory && symbol.type !== "historyIcon" && (
                         <div style={{ position: "absolute", top: 8, right: 12 }}>{renderInventoryStar(symbol)}</div>
                       )}
-                      <button
-                        style={{ position: "absolute", bottom: 8, right: 12, background: "#fffbe6", color: "#d32f2f", border: "1px solid #d6c585", borderRadius: 8, padding: "2px 10px", fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
-                        onClick={handleRemove}
-                        title="Remove from canvas"
-                      >
-                        ×
-                      </button>
                     </div>
                   );
                 })}

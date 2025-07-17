@@ -9,6 +9,9 @@ import CanvasSection, { SymbolType } from "./res/CanvasSection";
 import { v4 as uuidv4 } from "uuid";
 import { createSlice, configureStore } from "@reduxjs/toolkit";
 import { useSelector, useDispatch } from "react-redux";
+import { motion } from "framer-motion";
+import Select from "react-select";
+import "./App.css";
 
 // Default inventory shapes (rect, circle, polygon)
 const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] = [
@@ -53,19 +56,18 @@ const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] 
 // Redux slice for symbols, inventory, tags, toast, selection
 const initialState = {
   symbols: [
-        {
-            "uuid": "884d68cc-e4c7-452e-bdf6-335a254201d9",
-            "inventoryId": "default-polygon",
-            "x": 50,
-            "y": 50,
-            "width": 100,
-            "height": 100,
-            "type": "polygon"
-        }
-    ] as SymbolType[],
+      {
+          "uuid":  uuidv4(),
+          "inventoryId": "default-history-icon",
+          "x": 50,
+          "y": 50,
+          "width": 100,
+          "height": 100,
+          "type": "historyIcon"
+      }
+  ] as SymbolType[],
   inventory: DEFAULT_INVENTORY as (SymbolType & { tag?: string; isDefault?: boolean })[],
-  selectedId: null as string | null,
-  selectMode: false,
+  selectedIds: [] as string[], // <-- changed from selectedId
   editInventory: false,
   newTag: "",
   tagFilter: "All",
@@ -97,11 +99,8 @@ const appSlice = createSlice({
         s.inventoryId === action.payload ? { ...s, inventory: false } : s
       );
     },
-    setSelectedId(state, action) {
-      state.selectedId = action.payload;
-    },
-    setSelectMode(state, action) {
-      state.selectMode = action.payload;
+    setSelectedIds(state, action) {
+      state.selectedIds = action.payload;
     },
     setEditInventory(state, action) {
       state.editInventory = action.payload;
@@ -118,13 +117,13 @@ const appSlice = createSlice({
     clearSymbols(state) {
       state.symbols = [
         {
-            "uuid": "884d68cc-e4c7-452e-bdf6-335a254201d9",
-            "inventoryId": "default-polygon",
+            "uuid":  uuidv4(),
+            "inventoryId": "default-history-icon",
             "x": 50,
             "y": 50,
             "width": 100,
             "height": 100,
-            "type": "polygon"
+            "type": "historyIcon"
         }
     ];
     },
@@ -141,8 +140,7 @@ const {
   setInventory,
   addInventory,
   removeInventory,
-  setSelectedId,
-  setSelectMode,
+  setSelectedIds,
   setEditInventory,
   setNewTag,
   setTagFilter,
@@ -151,14 +149,13 @@ const {
   refreshInventory,
 } = appSlice.actions;
 
-const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
+const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
   const dispatch = useDispatch();
   const appState = useSelector((state: any) => state.app);
   const symbols = Array.isArray(appState.symbols) ? appState.symbols : [];
   const {
     inventory,
-    selectedId,
-    selectMode,
+    selectedIds,
     editInventory,
     newTag,
     tagFilter,
@@ -195,7 +192,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
   const insertSymbolToDocument = async (symbol: SymbolType) => {
     if (symbol.type === "image" && symbol.src) {
       const blob = await (await fetch(symbol.src)).blob();
-      await addOnUISdk.app.document.addImage(blob);
+      await addOnSDKAPI.app.document.addImage(blob);
     } else {
       let svg = "";
       if (symbol.type === "rect")
@@ -207,7 +204,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
 
       const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}">${svg}</svg>`;
       const blob = await svgToPngBlob(fullSvg, symbol.width, symbol.height);
-      await addOnUISdk.app.document.addImage(blob);
+      await addOnSDKAPI.app.document.addImage(blob);
     }
   };
 
@@ -286,7 +283,7 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
       s.inventoryId === item.inventoryId ? { ...s, inventory: true } : s
     );
     dispatch(setSymbols(updatedSymbols));
-    await addOnUISdk.instance.clientStorage.setItem("inventory", updatedInventory);
+    await addOnSDKAPI.instance.clientStorage.setItem("inventory", updatedInventory);
     dispatch(setNewTag(""));
   };
 
@@ -295,17 +292,27 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     if (DEFAULT_INVENTORY.some((d) => d.inventoryId === inventoryId)) return;
     const updated = inventory.filter((f) => f.inventoryId !== inventoryId);
     dispatch(setInventory(updated));
-    dispatch(
-      setSymbols((prev) =>
-        prev.map((s) => (s.inventoryId === inventoryId ? { ...s, inventory: false } : s))
-      )
+    const currentSymbols = store.getState().app.symbols;
+    const updatedSymbols = currentSymbols.map((s) =>
+      s.inventoryId === inventoryId ? { ...s, inventory: false } : s
     );
-    await addOnUISdk.instance.clientStorage.setItem("inventory", updated);
+    dispatch(setSymbols(updatedSymbols));
+    await addOnSDKAPI.instance.clientStorage.setItem("inventory", updated);
+  };
+
+  // Add new handler for tagging inventory
+  const handleAddTag = (uuids: string[], tag: string) => {
+    if (!tag.trim()) return;
+    const updatedInventory = inventory.map((item) =>
+      uuids.includes(item.uuid) ? { ...item, tag: tag.trim() } : item
+    );
+    dispatch(setInventory(updatedInventory));
+    dispatch(setNewTag(""));
   };
 
   // Load inventory: ensure default shapes always present
   const loadInventory = async () => {
-    const stored = (await addOnUISdk.instance.clientStorage.getItem("inventory")) as
+    const stored = (await addOnSDKAPI.instance.clientStorage.getItem("inventory")) as
       | (SymbolType & { tag?: string; isDefault?: boolean })[]
       | undefined;
     let merged: (SymbolType & { tag?: string; isDefault?: boolean })[] = DEFAULT_INVENTORY;
@@ -326,8 +333,16 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     loadInventory();
   }, []);
 
-  const filteredInventory = tagFilter === "All" ? inventory : inventory.filter((f) => f.tag === tagFilter);
+  const filteredInventory = Array.isArray(tagFilter) && tagFilter.includes("All")
+    ? inventory
+    : Array.isArray(tagFilter)
+      ? inventory.filter((f) => tagFilter.includes(f.tag))
+      : inventory.filter((f) => f.tag === tagFilter);
   const uniqueTags = useMemo(() => Array.from(new Set(inventory.map((f) => String(f.tag ?? "Untagged")))), [inventory]);
+  const tagOptions = [
+    { value: "All", label: "All" },
+    ...uniqueTags.map((tag) => ({ value: tag, label: tag }))
+  ];
 
   // Wrapper for setSymbols to support both value and updater function (for CanvasSection compatibility)
   const setSymbolsWrapper = (updater: SymbolType[] | ((prev: SymbolType[]) => SymbolType[])) => {
@@ -348,188 +363,123 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
     }
   };
 
+  // Wrapper for setToast to always dispatch Redux action
+  const setToastWrapper = (value: string | null) => {
+    dispatch(setToast(value));
+  };
+
   return (
     <Theme system="express" scale="medium" color="light">
       <div className="container">
-        <div className="flex p-4 mb-12">
-          <div style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "center" }}>
-            <div onClick={() => handleInsertShape("rect")}>
-              <svg width={40} height={40}>
-                <rect x={5} y={10} width={30} height={20} fill="#90caf9" stroke="#333" strokeWidth={2} />
-              </svg>
-            </div>
-            <div onClick={() => handleInsertShape("circle")}>
-              <svg width={40} height={40}>
-                <circle cx={20} cy={20} r={12} fill="#a5d6a7" stroke="#333" strokeWidth={2} />
-              </svg>
-            </div>
-            <div onClick={() => handleInsertShape("polygon")}>
-              <svg width={40} height={40}>
-                <polygon points="20,5 35,35 5,35" fill="#ffcc80" stroke="#333" strokeWidth={2} />
-              </svg>
-            </div>
+        {/* Top shape/upload controls - modern flex card */}
+        <div className="top-controls">
+          <div className="shape-row">
+            <div onClick={() => handleInsertShape("rect")}> <svg width={40} height={40}><rect x={5} y={10} width={30} height={20} fill="#90caf9" stroke="#333" strokeWidth={2} /></svg> </div>
+            <div onClick={() => handleInsertShape("circle")}> <svg width={40} height={40}><circle cx={20} cy={20} r={12} fill="#a5d6a7" stroke="#333" strokeWidth={2} /></svg> </div>
+            <div onClick={() => handleInsertShape("polygon")}> <svg width={40} height={40}><polygon points="20,5 35,35 5,35" fill="#ffcc80" stroke="#333" strokeWidth={2} /></svg> </div>
             <label>
               <Button size="m">Upload</Button>
-              <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleUpload} />
+              <input type="file" accept="image/*" className="file-input-hidden" onChange={handleUpload} />
             </label>
           </div>
         </div>
 
+        {/* Canvas section remains unchanged */}
         <CanvasSection
           symbols={symbols}
           setSymbols={setSymbolsWrapper}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
+          selectedId={selectedIds}
+          setSelectedId={setSelectedIds}
           onAddInventory={handleAddInventory}
           onInsertSymbol={handleInsertFromInventory}
-          selectMode={selectMode}
-          setSelectMode={setSelectMode}
           inventoryList={inventory.map((i) => ({ inventoryId: i.inventoryId }))}
           toast={toast}
-          setToast={setToast}
+          setToast={setToastWrapper}
         />
 
-        {selectMode && selectedId && (
-          <div style={{ marginTop: 12, display: "flex", gap: 10, alignItems: "center" }}>
-            <input
-              placeholder="Enter tag for selected symbol"
-              value={newTag}
-              onChange={(e) => dispatch(setNewTag(e.target.value))}
-              style={{
-                padding: "6px 8px",
-                borderRadius: "4px",
-                border: "1px solid #ccc",
-                fontSize: "14px",
-                minWidth: "200px",
-              }}
-            />
-            <Button variant="primary" onClick={() => handleAddInventory(selectedId!)}>
-              📦 Add to Inventory
-            </Button>
+        {/* Inventory controls and grid - modern card design */}
+        <div className="mt-24">
+          <div className="inventory-controls-panel">
+            <h4 className="inventory-title">Inventory</h4>
+            <Button size="s" variant={editInventory ? "primary" : "secondary"} onClick={() => dispatch(setEditInventory(!editInventory))} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>{editInventory ? "Done" : "Edit"}</Button>
+            <Button size="s" variant="secondary" onClick={async () => { await loadInventory(); dispatch(setToast("Canvas refreshed.")); }} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>Refresh Canvas</Button>
+            <Button size="s" variant="secondary" onClick={() => { dispatch(clearSymbols()); dispatch(setToast("Canvas cleared.")); }} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>Clear Canvas</Button>
+            <div style={{ minWidth: 220, marginLeft: 8 }}>
+              <Select
+                isMulti
+                options={tagOptions}
+                value={tagOptions.filter((opt) => Array.isArray(tagFilter) && tagFilter.includes(opt.value))}
+                onChange={(selected) => {
+                  let values = selected.map((opt) => opt.value);
+                  if (values.includes("All")) {
+                    values = ["All"];
+                  }
+                  dispatch(setTagFilter(values));
+                }}
+                placeholder="Filter by tag(s)"
+                classNamePrefix="react-select"
+              />
+            </div>
           </div>
-        )}
-
-        <div className="mt-12">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              background: "#f8f9fa",
-              borderRadius: 12,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-              padding: "18px 24px 12px 24px",
-              marginBottom: 12,
-            }}
-          >
-            <h4
-              style={{
-                fontSize: 20,
-                fontWeight: 700,
-                margin: 0,
-                color: "#222",
-                letterSpacing: 0.2,
-              }}
-            >
-              Inventory
-            </h4>
-            <Button
-              size="s"
-              variant={editInventory ? "primary" : "secondary"}
-              onClick={() => dispatch(setEditInventory(!editInventory))}
-              style={{
-                borderRadius: 8,
-                fontWeight: 600,
-                minWidth: 64,
-                marginLeft: 8,
-              }}
-            >
-              {editInventory ? "Done" : "Edit"}
-            </Button>
-            <Button
-              size="s"
-              variant="secondary"
-              onClick={async () => {
-                await loadInventory();
-                dispatch(setToast("Canvas refreshed."));
-              }}
-              style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}
-            >
-              Refresh Canvas
-            </Button>
-            <Button
-              size="s"
-              variant="secondary"
-              onClick={() => {
-                dispatch(clearSymbols());
-                dispatch(setToast("Canvas cleared."));
-              }}
-              style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}
-            >
-              Clear Canvas
-            </Button>
-            <select
-              title="Filter Inventory"
-              value={tagFilter}
-              onChange={(e) => dispatch(setTagFilter(e.target.value))}
-              style={{
-                border: "1px solid #d1d5db",
-                borderRadius: 8,
-                padding: "6px 16px",
-                fontSize: 15,
-                background: "#fff",
-                color: "#333",
-                marginLeft: 12,
-                boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                outline: "none",
-                transition: "border 0.2s",
-              }}
-            >
-              <option value="All">All</option>
-              {uniqueTags.map((tag: string) => (
-                <option key={tag} value={tag}>
-                  {tag}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex gap-2 flex-wrap mt-2">
+          {/* Add Tag functionality when editInventory is true and items are selected */}
+          {editInventory && selectedIds.length > 0 && (
+            <div className="inventory-edit-row" style={{ display: "flex", gap: 10, alignItems: "center", margin: "16px 0" }}>
+              <input
+                placeholder="Enter tag for selected symbol(s)"
+                value={newTag}
+                onChange={(e) => dispatch(setNewTag(e.target.value))}
+                className="inventory-input"
+                style={{ padding: "6px 8px", borderRadius: "4px", border: "1px solid #ccc", fontSize: "14px", minWidth: "200px" }}
+              />
+              <Button variant="primary" onClick={() => handleAddTag(selectedIds, newTag)}>
+                Add Tag
+              </Button>
+            </div>
+          )}
+          {/* Inventory grid - modern flex row, 3 per row */}
+          <div className="inventory-grid">
             {filteredInventory.map((inv) => (
-              <div
-                key={inv.inventoryId}
-                className="border border-gray-300 p-1 relative"
-                onClick={() => handleInsertFromInventory(inv)}
-              >
-                <div className="cursor-pointer">
-                  {inv.type === "rect" ? (
-                    <svg width={30} height={20}>
-                      <rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" />
-                    </svg>
-                  ) : inv.type === "circle" ? (
-                    <svg width={30} height={30}>
-                      <circle cx={15} cy={15} r={13} fill="gold" stroke="#333" />
-                    </svg>
-                  ) : inv.type === "polygon" ? (
-                    <svg width={30} height={30}>
-                      <polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" />
-                    </svg>
-                  ) : inv.type === "image" && inv.src ? (
-                    <img src={inv.src} width={30} height={30} alt="Inventory" />
-                  ) : null}
-                </div>
-                {editInventory && !inv.isDefault && (
+              <div key={inv.inventoryId} className="inventory-card">
+                {/* Icon rendering */}
+                {inv.type === "rect" ? (
+                  <svg width={30} height={20}><rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" /></svg>
+                ) : inv.type === "circle" ? (
+                  <svg width={30} height={30}><circle cx={15} cy={15} r={13} fill="gold" stroke="#333" /></svg>
+                ) : inv.type === "polygon" ? (
+                  <svg width={30} height={30}><polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" /></svg>
+                ) : inv.type === "image" && inv.src ? (
+                  <img src={inv.src} width={30} height={30} alt="Inventory" />
+                ) : null}
+                {/* Select button in edit mode */}
+                {editInventory && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleRemoveInventory(inv.inventoryId);
+                      const idx = selectedIds.indexOf(inv.uuid);
+                      let updated;
+                      if (idx === -1) updated = [...selectedIds, inv.uuid];
+                      else updated = selectedIds.filter((id) => id !== inv.uuid);
+                      dispatch(setSelectedIds(updated));
                     }}
-                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
-                    aria-label="Remove from inventory"
+                    className={`select-inventory-btn-modern${selectedIds.includes(inv.uuid) ? " selected" : ""}`}
+                    aria-label="Select inventory item"
+                    style={{ position: "absolute", top: 2, left: 6, background: selectedIds.includes(inv.uuid) ? "#1976d2" : "#eee", color: selectedIds.includes(inv.uuid) ? "#fff" : "#333", border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
                   >
-                    ×
+                    ✓
                   </button>
+                )}
+                {/* Remove button in edit mode */}
+                {editInventory && !inv.isDefault && (
+                  <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveInventory(inv.inventoryId); }} className="remove-inventory-btn-modern" aria-label="Remove from inventory">×</button>
+                )}
+                {/* Only allow add to document when not in edit mode */}
+                {!editInventory && (
+                  <div
+                    className="inventory-card-overlay"
+                    onClick={() => handleInsertFromInventory(inv)}
+                    style={{ position: "absolute", inset: 0, cursor: "pointer", borderRadius: 14, zIndex: 1, background: "rgba(0,0,0,0)" }}
+                  />
                 )}
               </div>
             ))}
@@ -542,17 +492,3 @@ const App = ({ addOnUISdk, sandboxProxy }: { addOnUISdk: AddOnSDKAPI; sandboxPro
 
 export { store };
 export default App;
-
-// App.tsx now exports store and default App
-// In index.tsx, wrap <App /> with <Provider store={store}>
-// Example for index.tsx:
-// import React from "react";
-// import ReactDOM from "react-dom";
-// import App, { store } from "./components/App";
-// import { Provider } from "react-redux";
-// ReactDOM.render(
-//   <Provider store={store}>
-//     <App addOnUISdk={addOnUISdk} sandboxProxy={sandboxProxy} />
-//   </Provider>,
-//   document.getElementById("root")
-// );

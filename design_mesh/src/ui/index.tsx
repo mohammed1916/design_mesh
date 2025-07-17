@@ -21,7 +21,7 @@ addOnUISdk.ready.then(async () => {
     const root = createRoot(document.getElementById("root"));
     root.render(
         <Provider store={store}>
-            <App addOnUISdk={addOnUISdk} sandboxProxy={sandboxProxy} />
+            <App addOnSDKAPI={addOnUISdk} sandboxProxy={sandboxProxy} />
         </Provider>
     );
 });

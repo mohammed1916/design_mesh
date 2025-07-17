@@ -3,5 +3,6 @@ export interface DocumentSandboxApi {
     createRectangle(): void;
     createCircle?(radius: number, x: number, y: number): void;
     createPolygon?(points: Array<{x: number, y: number}>, color?: {red: number, green: number, blue: number, alpha: number}): void;
+    createHistoryIcon?(): void;
     // Add more shape/image/document APIs here
 }
