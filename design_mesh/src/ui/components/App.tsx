@@ -436,9 +436,17 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
               </Button>
             </div>
           )}
+            {/* If filteredInventory is empty, display a message to start adding items */}
+            {filteredInventory.length === 0 ? (
+                <div className="flex justify-center items-center h-full">
+                <p className="text-center text-gray-500 p-5 border border-dashed border-gray-300 rounded-lg">
+                  No items in inventory. Start adding shapes or images!
+                </p>
+                </div>
+            ) : null}
           {/* Inventory grid - modern flex row, 3 per row */}
           <div className="inventory-grid">
-            {filteredInventory.map((inv) => (
+            {filteredInventory.map((inv: SymbolType & { tag?: string; isDefault?: boolean }) => (
               <div key={inv.inventoryId} className="inventory-card">
                 {/* Icon rendering */}
                 {inv.type === "rect" ? (
