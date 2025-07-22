@@ -452,7 +452,14 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                     <div className="inventory-controls-panel">
                       <div className="flex flex-wrap gap-2 items-center justify-center">
                         {inventory.length > 3 && (
-                        <Button size="s" variant={editInventory ? "primary" : "secondary"} onClick={() => dispatch(setEditInventory(!editInventory))} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>{editInventory ? "Done" : "Edit"}</Button>
+                        <Button
+                          size="s"
+                          variant={editInventory ? "primary" : "secondary"}
+                          onClick={() => dispatch(setEditInventory(!editInventory))}
+                          className={`inventory-edit-btn${editInventory ? " editing" : ""}`}
+                        >
+                          {editInventory ? "Done" : "Edit"}
+                        </Button>
                         )}
                       </div>
                     </div>
