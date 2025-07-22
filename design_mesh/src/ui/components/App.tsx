@@ -310,6 +310,8 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
     dispatch(setInventory(updatedInventory));
     dispatch(setNewTag(""));
     await addOnSDKAPI.instance.clientStorage.setItem("inventory", updatedInventory);
+    dispatch(setToast(`Tag '${tag.trim()}' added to selected item(s).`));
+    setTimeout(() => dispatch(setToast(null)), 2000);
   };
 
   // Load inventory: ensure default shapes always present
