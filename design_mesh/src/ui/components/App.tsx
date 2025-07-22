@@ -285,6 +285,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
     dispatch(setSymbols(updatedSymbols));
     await addOnSDKAPI.instance.clientStorage.setItem("inventory", updatedInventory);
     dispatch(setNewTag(""));
+    console.log("Inventory after add:", inventory);
   };
 
   // Remove from inventory by inventoryId
@@ -301,13 +302,14 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   };
 
   // Add new handler for tagging inventory
-  const handleAddTag = (uuids: string[], tag: string) => {
+  const handleAddTag = async (uuids: string[], tag: string) => {
     if (!tag.trim()) return;
     const updatedInventory = inventory.map((item) =>
       uuids.includes(item.uuid) ? { ...item, tag: tag.trim() } : item
     );
     dispatch(setInventory(updatedInventory));
     dispatch(setNewTag(""));
+    await addOnSDKAPI.instance.clientStorage.setItem("inventory", updatedInventory);
   };
 
   // Load inventory: ensure default shapes always present
@@ -333,16 +335,19 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
     loadInventory();
   }, []);
 
-  const filteredInventory = Array.isArray(tagFilter) && tagFilter.includes("All")
+  const filteredInventory = !Array.isArray(tagFilter) || tagFilter.length === 0
     ? inventory
-    : Array.isArray(tagFilter)
-      ? inventory.filter((f) => tagFilter.includes(f.tag))
-      : inventory.filter((f) => f.tag === tagFilter);
+    : inventory.filter((f) => tagFilter.includes(f.tag));
   const uniqueTags = useMemo(() => Array.from(new Set(inventory.map((f) => String(f.tag ?? "Untagged")))), [inventory]);
-  const tagOptions = [
-    { value: "All", label: "All" },
-    ...uniqueTags.map((tag) => ({ value: tag, label: tag }))
-  ];
+  const tagOptions = uniqueTags.map((tag) => ({ value: tag, label: tag }));
+
+  // Helper: get tag filter value for Select
+  const getTagFilterValue = () => {
+    if (!Array.isArray(tagFilter) || tagFilter.length === 0) {
+      return [];
+    }
+    return tagOptions.filter((opt) => tagFilter.includes(opt.value));
+  };
 
   // Wrapper for setSymbols to support both value and updater function (for CanvasSection compatibility)
   const setSymbolsWrapper = (updater: SymbolType[] | ((prev: SymbolType[]) => SymbolType[])) => {
@@ -370,12 +375,24 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
 
   const [inventoryOpen, setInventoryOpen] = React.useState(true);
   const inventoryRef = React.useRef<HTMLDivElement>(null);
+  const prevInventoryLength = React.useRef(inventory.length);
 
   React.useEffect(() => {
     if (inventoryOpen && inventoryRef.current) {
       inventoryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [inventoryOpen]);
+
+  React.useEffect(() => {
+    if (
+      inventoryOpen &&
+      inventoryRef.current &&
+      inventory.length > prevInventoryLength.current
+    ) {
+      inventoryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    prevInventoryLength.current = inventory.length;
+  }, [inventory.length, inventoryOpen]);
 
   return (
     <Theme system="express" scale="medium" color="light">
@@ -429,29 +446,15 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
               >
                 <div className="p-4 bg-white rounded-b-xl border-t">
                   {/* <h4 className="inventory-title">Inventory</h4> */}
-                  {filteredInventory.length > 0 && (
+                  
                     <div className="inventory-controls-panel">
                       <div className="flex flex-wrap gap-2 items-center justify-center">
+                        {inventory.length > 3 && (
                         <Button size="s" variant={editInventory ? "primary" : "secondary"} onClick={() => dispatch(setEditInventory(!editInventory))} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>{editInventory ? "Done" : "Edit"}</Button>
-                      </div>
-                      <div style={{ minWidth: 220, marginLeft: 8 }}>
-                        <Select
-                          isMulti
-                          options={tagOptions}
-                          value={tagOptions.filter((opt) => Array.isArray(tagFilter) && tagFilter.includes(opt.value))}
-                          onChange={(selected) => {
-                            let values = selected.map((opt) => opt.value);
-                            if (values.includes("All")) {
-                              values = ["All"];
-                            }
-                            dispatch(setTagFilter(values));
-                          }}
-                          placeholder="Filter by tag(s)"
-                          classNamePrefix="react-select"
-                        />
+                        )}
                       </div>
                     </div>
-                  )}
+                  
                   
                   {editInventory && selectedIds.length > 0 && (
                     <div className="inventory-edit-row" style={{ display: "flex", gap: 10, alignItems: "center", margin: "16px 0" }}>
@@ -467,14 +470,14 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                       </Button>
                     </div>
                   )}
-                  {filteredInventory.length === 0 ? (
+                  {inventory.length === 3 ? (
                     <div className="flex justify-center items-center h-full">
                       <p className="text-center text-gray-500 p-5 border border-dashed border-gray-300 rounded-lg">
                         No items in inventory. Start adding shapes or images!
                       </p>
                     </div>
                   ) : null}
-                  <div className="inventory-grid">
+                  <div className="inventory-grid mb-4">
                     {filteredInventory.map((inv: SymbolType & { tag?: string; isDefault?: boolean }) => (
                       <div key={inv.inventoryId} className="inventory-card">
                         {/* Icon rendering */}
@@ -521,6 +524,27 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                       </div>
                     ))}
                   </div>
+                  {/* Tag filter */}
+                  {uniqueTags.length > 0 && (
+                    <div>
+                      <div className="mt-4">
+                        &nbsp;
+                      </div>
+                      <div className="tag-filter">
+                        <Select
+                          isMulti
+                          options={tagOptions}
+                          value={getTagFilterValue()}
+                          onChange={(selected) => {
+                            const values = selected.map((s) => s.value);
+                            dispatch(setTagFilter(values));
+                          }}
+                          placeholder="Filter by tag..."
+                          className="tag-select"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
