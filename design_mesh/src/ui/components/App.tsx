@@ -400,15 +400,17 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
         {/* Inventory controls and grid - modern card design */}
         <div className="mt-24">
             <h4 className="inventory-title">Inventory</h4>
-          <div className="inventory-controls-panel">
-            <div className="flex flex-wrap gap-2 items-center justify-center">
-            <Button size="s" variant={editInventory ? "primary" : "secondary"} onClick={() => dispatch(setEditInventory(!editInventory))} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>{editInventory ? "Done" : "Edit"}</Button>
-            <Button size="s" variant="secondary" onClick={async () => { await loadInventory(); dispatch(setToast("Canvas refreshed.")); }} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>Refresh Canvas</Button>
+            {filteredInventory.length > 0 && (
+              <div className="inventory-controls-panel">
+                <div className="flex flex-wrap gap-2 items-center justify-center">
+                  <Button size="s" variant={editInventory ? "primary" : "secondary"} onClick={() => dispatch(setEditInventory(!editInventory))} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>{editInventory ? "Done" : "Edit"}</Button>
+                  {/* <Button size="s" variant="secondary" onClick={async () => { await loadInventory(); dispatch(setToast("Canvas refreshed.")); }} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>Refresh Canvas</Button> */}
             
-          </div>
+                </div>
 
-            </div>
-                      <div style={{ minWidth: 220, marginLeft: 8 }}>
+              </div>
+            )}
+            <div style={{ minWidth: 220, marginLeft: 8 }}>
               <Select
                 isMulti
                 options={tagOptions}
