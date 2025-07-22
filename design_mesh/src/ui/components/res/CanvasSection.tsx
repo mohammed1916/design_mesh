@@ -122,40 +122,54 @@ const CanvasSection: React.FC<CanvasProps> = ({
     <div className="mt-12" style={{ position: "relative" }}>
 
       {toast && (
-        <div style={{ position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)" }}>
-          <div
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        pointerEvents: "none"
+      }}>
+        <div
+          style={{
+            transformOrigin: "top center",
+            background: "#fffbe6",
+            color: "#222",
+            border: "1.5px solid #d6c585",
+            borderRadius: 10,
+            padding: "10px 32px",
+            fontWeight: 600,
+            fontSize: 16,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+            zIndex: 1001,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 12,
+            minWidth: 220,
+            maxWidth: 400,
+            pointerEvents: "auto",
+            position: "relative"
+          }}
+        >
+          <span style={{ flex: 1 }}>{toast}</span>
+          <button
+            type="button"
             style={{
-              transform: "scale(0.5)",
-              transformOrigin: "top center",
-              background: "#fffbe6",
-              color: "#222",
-              border: "1.5px solid #d6c585",
-              borderRadius: 10,
-              padding: "10px 32px",
-              fontWeight: 600,
-              fontSize: 16,
-              boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-              zIndex: 20,
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 12
-            }}
-          >
-            <span style={{ flex: 1 }}>{toast}</span>
-            <button
-              type="button"
-              style={{
-                position: "absolute",
-                top: 6,
-                right: 10,
-                background: "none",
+              position: "absolute",
+              top: 6,
+              right: 10,
+              background: "none",
                 border: "none",
                 color: "#d32f2f",
                 fontWeight: 700,
                 fontSize: 18,
                 cursor: "pointer"
               }}
-              onClick={() => setToast(null)}
+              onClick={() => setToast && setToast(null)}
               title="Close"
               aria-label="Close toast"
             >
@@ -163,7 +177,6 @@ const CanvasSection: React.FC<CanvasProps> = ({
             </button>
           </div>
         </div>
-
       )}
       {showClearConfirm && (
         <div style={{
