@@ -9,7 +9,7 @@ import CanvasSection, { SymbolType } from "./res/CanvasSection";
 import { v4 as uuidv4 } from "uuid";
 import { createSlice, configureStore } from "@reduxjs/toolkit";
 import { useSelector, useDispatch } from "react-redux";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
 import "./App.css";
 
@@ -368,6 +368,15 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
     dispatch(setToast(value));
   };
 
+  const [inventoryOpen, setInventoryOpen] = React.useState(true);
+  const inventoryRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (inventoryOpen && inventoryRef.current) {
+      inventoryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [inventoryOpen]);
+
   return (
     <Theme system="express" scale="medium" color="light">
       <div className="container">
@@ -398,107 +407,125 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
         />
 
         {/* Inventory controls and grid - modern card design */}
-        <div className="mt-24">
-            <h4 className="inventory-title">Inventory</h4>
-            {filteredInventory.length > 0 && (
-              <div className="inventory-controls-panel">
-                <div className="flex flex-wrap gap-2 items-center justify-center">
-                  <Button size="s" variant={editInventory ? "primary" : "secondary"} onClick={() => dispatch(setEditInventory(!editInventory))} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>{editInventory ? "Done" : "Edit"}</Button>
-                  {/* <Button size="s" variant="secondary" onClick={async () => { await loadInventory(); dispatch(setToast("Canvas refreshed.")); }} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>Refresh Canvas</Button> */}
-            
+        <div className="border border-gray-300 rounded-xl shadow-sm mt-24">
+          <button
+            onClick={() => setInventoryOpen(!inventoryOpen)}
+            className="inline-flex items-center gap-2 rounded-xl bg-gray-100 p-4 font-medium text-gray-700 hover:bg-gray-200 transition-colors w-full"
+            style={{ cursor: "pointer", userSelect: "none" }}
+          >
+            {/* <span className="text-xl leading-none">{inventoryOpen ? "📦" : "🗃️"}</span> */}
+            <span className="text-xl leading-none">{inventoryOpen ? "▼ " : "▶ "}</span>
+            <span>Inventory</span>
+          </button>
+          <AnimatePresence initial={false}>
+            {inventoryOpen && (
+              <motion.div
+                key="inventory"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 bg-white rounded-b-xl border-t">
+                  {/* <h4 className="inventory-title">Inventory</h4> */}
+                  {filteredInventory.length > 0 && (
+                    <div className="inventory-controls-panel">
+                      <div className="flex flex-wrap gap-2 items-center justify-center">
+                        <Button size="s" variant={editInventory ? "primary" : "secondary"} onClick={() => dispatch(setEditInventory(!editInventory))} style={{ borderRadius: 8, fontWeight: 600, minWidth: 64, marginLeft: 8 }}>{editInventory ? "Done" : "Edit"}</Button>
+                      </div>
+                      <div style={{ minWidth: 220, marginLeft: 8 }}>
+                        <Select
+                          isMulti
+                          options={tagOptions}
+                          value={tagOptions.filter((opt) => Array.isArray(tagFilter) && tagFilter.includes(opt.value))}
+                          onChange={(selected) => {
+                            let values = selected.map((opt) => opt.value);
+                            if (values.includes("All")) {
+                              values = ["All"];
+                            }
+                            dispatch(setTagFilter(values));
+                          }}
+                          placeholder="Filter by tag(s)"
+                          classNamePrefix="react-select"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {editInventory && selectedIds.length > 0 && (
+                    <div className="inventory-edit-row" style={{ display: "flex", gap: 10, alignItems: "center", margin: "16px 0" }}>
+                      <input
+                        placeholder="Enter tag for selected symbol(s)"
+                        value={newTag}
+                        onChange={(e) => dispatch(setNewTag(e.target.value))}
+                        className="inventory-input"
+                        style={{ padding: "6px 8px", borderRadius: "4px", border: "1px solid #ccc", fontSize: "14px", minWidth: "200px" }}
+                      />
+                      <Button variant="primary" onClick={() => handleAddTag(selectedIds, newTag)}>
+                        Add Tag
+                      </Button>
+                    </div>
+                  )}
+                  {filteredInventory.length === 0 ? (
+                    <div className="flex justify-center items-center h-full">
+                      <p className="text-center text-gray-500 p-5 border border-dashed border-gray-300 rounded-lg">
+                        No items in inventory. Start adding shapes or images!
+                      </p>
+                    </div>
+                  ) : null}
+                  <div className="inventory-grid">
+                    {filteredInventory.map((inv: SymbolType & { tag?: string; isDefault?: boolean }) => (
+                      <div key={inv.inventoryId} className="inventory-card">
+                        {/* Icon rendering */}
+                        {inv.type === "rect" ? (
+                          <svg width={30} height={20}><rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" /></svg>
+                        ) : inv.type === "circle" ? (
+                          <svg width={30} height={30}><circle cx={15} cy={15} r={13} fill="gold" stroke="#333" /></svg>
+                        ) : inv.type === "polygon" ? (
+                          <svg width={30} height={30}><polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" /></svg>
+                        ) : inv.type === "image" && inv.src ? (
+                          <img src={inv.src} width={30} height={30} alt="Inventory" />
+                        ) : null}
+                        {/* Select button in edit mode */}
+                        {editInventory && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const idx = selectedIds.indexOf(inv.uuid);
+                              let updated;
+                              if (idx === -1) updated = [...selectedIds, inv.uuid];
+                              else updated = selectedIds.filter((id) => id !== inv.uuid);
+                              dispatch(setSelectedIds(updated));
+                            }}
+                            className={`select-inventory-btn-modern${selectedIds.includes(inv.uuid) ? " selected" : ""}`}
+                            aria-label="Select inventory item"
+                            style={{ position: "absolute", top: 2, left: 6, background: selectedIds.includes(inv.uuid) ? "#1976d2" : "#eee", color: selectedIds.includes(inv.uuid) ? "#fff" : "#333", border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+                          >
+                            ✓
+                          </button>
+                        )}
+                        {/* Remove button in edit mode */}
+                        {editInventory && !inv.isDefault && (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveInventory(inv.inventoryId); }} className="remove-inventory-btn-modern" aria-label="Remove from inventory">×</button>
+                        )}
+                        {/* Only allow add to document when not in edit mode */}
+                        {!editInventory && (
+                          <div
+                            className="inventory-card-overlay"
+                            onClick={() => handleInsertFromInventory(inv)}
+                            style={{ position: "absolute", inset: 0, cursor: "pointer", borderRadius: 14, zIndex: 1, background: "rgba(0,0,0,0)" }}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-
-              </div>
+              </motion.div>
             )}
-            <div style={{ minWidth: 220, marginLeft: 8 }}>
-              <Select
-                isMulti
-                options={tagOptions}
-                value={tagOptions.filter((opt) => Array.isArray(tagFilter) && tagFilter.includes(opt.value))}
-                onChange={(selected) => {
-                  let values = selected.map((opt) => opt.value);
-                  if (values.includes("All")) {
-                    values = ["All"];
-                  }
-                  dispatch(setTagFilter(values));
-                }}
-                placeholder="Filter by tag(s)"
-                classNamePrefix="react-select"
-              />
-            </div>
-
-          {/* Add Tag functionality when editInventory is true and items are selected */}
-          {editInventory && selectedIds.length > 0 && (
-            <div className="inventory-edit-row" style={{ display: "flex", gap: 10, alignItems: "center", margin: "16px 0" }}>
-              <input
-                placeholder="Enter tag for selected symbol(s)"
-                value={newTag}
-                onChange={(e) => dispatch(setNewTag(e.target.value))}
-                className="inventory-input"
-                style={{ padding: "6px 8px", borderRadius: "4px", border: "1px solid #ccc", fontSize: "14px", minWidth: "200px" }}
-              />
-              <Button variant="primary" onClick={() => handleAddTag(selectedIds, newTag)}>
-                Add Tag
-              </Button>
-            </div>
-          )}
-          
-            {/* If filteredInventory is empty, display a message to start adding items */}
-            {filteredInventory.length === 0 ? (
-                <div className="flex justify-center items-center h-full">
-                <p className="text-center text-gray-500 p-5 border border-dashed border-gray-300 rounded-lg">
-                  No items in inventory. Start adding shapes or images!
-                </p>
-                </div>
-            ) : null}
-          {/* Inventory grid - modern flex row, 3 per row */}
-          <div className="inventory-grid">
-            {filteredInventory.map((inv: SymbolType & { tag?: string; isDefault?: boolean }) => (
-              <div key={inv.inventoryId} className="inventory-card">
-                {/* Icon rendering */}
-                {inv.type === "rect" ? (
-                  <svg width={30} height={20}><rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" /></svg>
-                ) : inv.type === "circle" ? (
-                  <svg width={30} height={30}><circle cx={15} cy={15} r={13} fill="gold" stroke="#333" /></svg>
-                ) : inv.type === "polygon" ? (
-                  <svg width={30} height={30}><polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" /></svg>
-                ) : inv.type === "image" && inv.src ? (
-                  <img src={inv.src} width={30} height={30} alt="Inventory" />
-                ) : null}
-                {/* Select button in edit mode */}
-                {editInventory && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const idx = selectedIds.indexOf(inv.uuid);
-                      let updated;
-                      if (idx === -1) updated = [...selectedIds, inv.uuid];
-                      else updated = selectedIds.filter((id) => id !== inv.uuid);
-                      dispatch(setSelectedIds(updated));
-                    }}
-                    className={`select-inventory-btn-modern${selectedIds.includes(inv.uuid) ? " selected" : ""}`}
-                    aria-label="Select inventory item"
-                    style={{ position: "absolute", top: 2, left: 6, background: selectedIds.includes(inv.uuid) ? "#1976d2" : "#eee", color: selectedIds.includes(inv.uuid) ? "#fff" : "#333", border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
-                  >
-                    ✓
-                  </button>
-                )}
-                {/* Remove button in edit mode */}
-                {editInventory && !inv.isDefault && (
-                  <button type="button" onClick={(e) => { e.stopPropagation(); handleRemoveInventory(inv.inventoryId); }} className="remove-inventory-btn-modern" aria-label="Remove from inventory">×</button>
-                )}
-                {/* Only allow add to document when not in edit mode */}
-                {!editInventory && (
-                  <div
-                    className="inventory-card-overlay"
-                    onClick={() => handleInsertFromInventory(inv)}
-                    style={{ position: "absolute", inset: 0, cursor: "pointer", borderRadius: 14, zIndex: 1, background: "rgba(0,0,0,0)" }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+          </AnimatePresence>
+          <div ref={inventoryRef} style={{ height: 0, overflow: "hidden" }} />
         </div>
       </div>
     </Theme>

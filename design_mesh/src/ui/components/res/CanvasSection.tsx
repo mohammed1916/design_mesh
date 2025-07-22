@@ -30,21 +30,24 @@ const CanvasControls: React.FC<{
   setSymbols: React.Dispatch<React.SetStateAction<SymbolType[]>>;
   onRequestClear: () => void;
 }> = ({ setSymbols, onRequestClear }) => (
-  <div style={{ display: "flex", gap: 10, alignItems: "center", padding: 16 }}>
-    <button
-      style={{
-        padding: "6px 16px",
-        borderRadius: 4,
-        border: 0,
-        background: "#eee",
-        color: "#333",
-        fontWeight: 500,
-        cursor: "pointer",
-      }}
-      onClick={onRequestClear}
-    >
-      Clear
-    </button>
+
+  <div className="inventory-controls-panel">
+    <div style={{ display: "flex", gap: 10, alignItems: "center", padding: 16 }}>
+      <button
+        style={{
+          padding: "6px 16px",
+          borderRadius: 4,
+          border: 0,
+          background: "#eee",
+          color: "#333",
+          fontWeight: 500,
+          cursor: "pointer",
+        }}
+        onClick={onRequestClear}
+      >
+        Clear
+      </button>
+    </div>
   </div>
 );
 
@@ -179,10 +182,11 @@ const CanvasSection: React.FC<CanvasProps> = ({
       <div className="border border-gray-300 rounded-xl shadow-sm">
         <button
           onClick={() => setOpen(!open)}
-          className="inline-flex items-center gap-2 rounded-xl bg-gray-100 p-4 font-medium text-gray-700 hover:bg-gray-200 transition-colors"
+          className="inline-flex items-center gap-2 rounded-xl bg-gray-100 p-4 font-medium text-gray-700 hover:bg-gray-200 transition-colors w-full"
           style={{ cursor: "pointer", userSelect: "none" }}
         >
-          <span className="text-xl leading-none">{open ? "🎯" : "🎨"}</span>
+          {/* <span className="text-xl leading-none">{open ? "🎯" : "🎨"}</span> */}
+          <span className="text-xl leading-none">{open ? "▼ " : "▶ "}</span>
           <span>Symbols</span>
         </button>
         <AnimatePresence initial={false}>
