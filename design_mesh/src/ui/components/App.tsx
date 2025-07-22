@@ -451,7 +451,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                   
                     <div className="inventory-controls-panel">
                       <div className="flex flex-wrap gap-2 items-center justify-center">
-                        {inventory.length > 3 && (
+                        {inventory.length >= 3 && (
                         <Button
                           size="s"
                           variant={editInventory ? "primary" : "secondary"}
