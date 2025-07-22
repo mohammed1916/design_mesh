@@ -245,8 +245,8 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
     reader.onload = async (ev) => {
       const src = ev.target?.result as string;
       // Check for duplicate src in symbols
-      console.log("Symbols before upload:", symbols);
-      console.log("Checking:", symbols.some((s) => s.uuid));
+      // console.log("Symbols before upload:", symbols);
+      // console.log("Checking:", symbols.some((s) => s.uuid));
       if (symbols.some((s) => s.uuid) && symbols.some((s) => s.src === src && s.type !== "image")) {
         dispatch(setToast("Something went wrong: plese enter a valid image. (png, jpg, svg etc.)"));
         if (e.target) e.target.value = "";

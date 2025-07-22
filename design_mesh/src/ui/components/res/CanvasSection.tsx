@@ -49,9 +49,9 @@ const CanvasControls: React.FC<{
 );
 
 const GRID_COLS = 2;
-const GRID_CELL_WIDTH = 120;
-const GRID_CELL_HEIGHT = 120;
-const GRID_GAP = 24;
+const GRID_CELL_WIDTH = 100;
+const GRID_CELL_HEIGHT = 100;
+const GRID_GAP = 16;
 
 const CanvasSection: React.FC<CanvasProps> = ({
   symbols,
@@ -119,31 +119,54 @@ const CanvasSection: React.FC<CanvasProps> = ({
     <div className="mt-12" style={{ position: "relative" }}>
 
       {toast && (
-        <div
-          style={{
-            position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)", background: "#fffbe6", color: "#222", border: "1.5px solid #d6c585", borderRadius: 10, padding: "10px 32px", fontWeight: 600, fontSize: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.08)", zIndex: 20,
-            display: "flex", alignItems: "flex-start", gap: 12
-          }}
-        >
-          <span style={{ flex: 1 }}>{toast}</span>
-          <button
-            type="button"
+        <div style={{ position: "absolute", top: 24, left: "50%", transform: "translateX(-50%)" }}>
+          <div
             style={{
-              position: "absolute", top: 6, right: 10, background: "none", border: "none", color: "#d32f2f", fontWeight: 700, fontSize: 18, cursor: "pointer"
+              transform: "scale(0.5)",
+              transformOrigin: "top center",
+              background: "#fffbe6",
+              color: "#222",
+              border: "1.5px solid #d6c585",
+              borderRadius: 10,
+              padding: "10px 32px",
+              fontWeight: 600,
+              fontSize: 16,
+              boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+              zIndex: 20,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 12
             }}
-            onClick={() => setToast(null)}
-            title="Close"
-            aria-label="Close toast"
           >
-            ×
-          </button>
+            <span style={{ flex: 1 }}>{toast}</span>
+            <button
+              type="button"
+              style={{
+                position: "absolute",
+                top: 6,
+                right: 10,
+                background: "none",
+                border: "none",
+                color: "#d32f2f",
+                fontWeight: 700,
+                fontSize: 18,
+                cursor: "pointer"
+              }}
+              onClick={() => setToast(null)}
+              title="Close"
+              aria-label="Close toast"
+            >
+              ×
+            </button>
+          </div>
         </div>
+
       )}
       {showClearConfirm && (
         <div style={{
           position: "absolute", zIndex: 10, left: 0, top: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center"
         }}>
-          <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 2px 16px rgba(0,0,0,0.15)", padding: 32, minWidth: 320, textAlign: "center", marginLeft: 40 }}>
+          <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 2px 16px rgba(0,0,0,0.15)", padding: 32, minWidth: 200, textAlign: "center", marginLeft: 8, marginRight: 8 }}>
             <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Clear all symbols?</div>
             <div style={{ marginBottom: 24, color: "#555" }}>Are you sure you want to remove all symbols from the canvas?</div>
             <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
@@ -191,9 +214,10 @@ const CanvasSection: React.FC<CanvasProps> = ({
                   display: "grid",
                   gridTemplateColumns: `repeat(${GRID_COLS}, ${GRID_CELL_WIDTH}px)`,
                   gap: `${GRID_GAP}px`,
+                  rowGap: `${GRID_GAP/2}px`, 
                   background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
                   borderRadius: 16,
-                  padding: 32,
+                  padding: 4,
                   justifyContent: "center",
                   minHeight: 400,
                   boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
