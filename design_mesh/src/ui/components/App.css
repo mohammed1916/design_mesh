@@ -54,8 +54,11 @@
 }
 
 .shape-row {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+  justify-content: center;
   align-items: center;
 }
 
@@ -69,6 +72,12 @@
 .shape-row > div:hover {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transform: translateY(-2px) scale(1.05);
+}
+
+.shape-upload {
+  grid-column: span 2;
+  display: flex;
+  justify-content: center;
 }
 
 /* Inventory panel styles */
@@ -87,6 +96,7 @@
   display: flex;
   gap: 10px;
   margin-bottom: 18px;
+  justify-content: center;
   align-items: center;
   background: #f8f9fa;
   border-radius: 12px;

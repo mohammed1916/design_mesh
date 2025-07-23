@@ -51,6 +51,18 @@ const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] 
     tag: "Basic",
     isDefault: true,
   },
+  {
+    uuid: "default-curve-uuid",
+    inventoryId: "default-curve",
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
+    type: "curve",
+    inventory: true,
+    tag: "Basic",
+    isDefault: true,
+  },
 ];
 
 // Redux slice for symbols, inventory, tags, toast, selection
@@ -201,6 +213,8 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
         svg = `<circle cx="${symbol.width / 2}" cy="${symbol.height / 2}" r="${symbol.width / 2 - 2}" fill="#a5d6a7" stroke="#333" stroke-width="2" />`;
       else if (symbol.type === "polygon")
         svg = `<polygon points="50,10 90,90 10,90" fill="#ffcc80" stroke="#333" stroke-width="2" />`;
+      else if (symbol.type === "curve")
+        svg = `<path d="M10,50 Q50,10 90,50" fill="none" stroke="#ef9a9a" stroke-width="3" />`; // Quadratic Bezier curve
 
       const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}">${svg}</svg>`;
       const blob = await svgToPngBlob(fullSvg, symbol.width, symbol.height);
@@ -220,7 +234,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   };
 
   // Insert new shape (rect/circle/polygon) with unique uuid and inventoryId
-  const handleInsertShape = async (type: "rect" | "circle" | "polygon") => {
+  const handleInsertShape = async (type: "rect" | "circle" | "polygon" | "curve") => {
     // Use inventoryId of default if exists, else new
     const defaultInv = DEFAULT_INVENTORY.find((d) => d.type === type);
     const inventoryId = defaultInv ? defaultInv.inventoryId : uuidv4();
@@ -402,13 +416,24 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
         {/* Top shape/upload controls - modern flex card */}
         <div className="top-controls">
           <div className="shape-row">
-            <div onClick={() => handleInsertShape("rect")}> <svg width={40} height={40}><rect x={5} y={10} width={30} height={20} fill="#90caf9" stroke="#333" strokeWidth={2} /></svg> </div>
-            <div onClick={() => handleInsertShape("circle")}> <svg width={40} height={40}><circle cx={20} cy={20} r={12} fill="#a5d6a7" stroke="#333" strokeWidth={2} /></svg> </div>
-            <div onClick={() => handleInsertShape("polygon")}> <svg width={40} height={40}><polygon points="20,5 35,35 5,35" fill="#ffcc80" stroke="#333" strokeWidth={2} /></svg> </div>
-            <label>
-              <Button size="m">Upload</Button>
-              <input type="file" accept="image/*" className="file-input-hidden" onChange={handleUpload} />
-            </label>
+            <div onClick={() => handleInsertShape("rect")}> 
+              <svg width={40} height={40}><rect x={5} y={10} width={30} height={20} fill="#90caf9" stroke="#333" strokeWidth={2} /></svg> 
+            </div>
+            <div onClick={() => handleInsertShape("circle")}> 
+              <svg width={40} height={40}><circle cx={20} cy={20} r={12} fill="#a5d6a7" stroke="#333" strokeWidth={2} /></svg> 
+            </div>
+            <div onClick={() => handleInsertShape("polygon")}> 
+              <svg width={40} height={40}><polygon points="20,5 35,35 5,35" fill="#ffcc80" stroke="#333" strokeWidth={2} /></svg> 
+            </div>
+            <div onClick={() => handleInsertShape("curve")}> 
+              <svg width={40} height={40}><path d="M 10 30 Q 20,5 30,30" fill="transparent" stroke="#ef9a9a" strokeWidth={2} /></svg> 
+            </div>
+            <div className="shape-upload">
+              <label>
+                <Button size="m">Upload</Button>
+                <input type="file" accept="image/*" className="file-input-hidden" onChange={handleUpload} />
+              </label>
+            </div>
           </div>
         </div>
 
@@ -496,6 +521,8 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                           <svg width={30} height={30}><circle cx={15} cy={15} r={13} fill="gold" stroke="#333" /></svg>
                         ) : inv.type === "polygon" ? (
                           <svg width={30} height={30}><polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" /></svg>
+                        ) : inv.type === "curve" ? (
+                          <svg width={30} height={30}><path d="M2,15 Q15,2 28,15" fill="none" stroke="#ef9a9a" strokeWidth={2} /></svg>
                         ) : inv.type === "image" && inv.src ? (
                           <img src={inv.src} width={30} height={30} alt="Inventory" />
                         ) : null}
