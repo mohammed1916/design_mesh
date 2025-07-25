@@ -235,13 +235,14 @@ const CanvasSection: React.FC<CanvasProps> = ({
                   rowGap: `${GRID_GAP/2}px`, 
                   background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
                   borderRadius: 16,
-                  padding: 4,
-                  justifyContent: "center",
-                  minHeight: 400,
+                  padding: 12,
+                  justifyContent: "start",
                   boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
                   border: "1.5px solid #e0e7ef",
                   overflow: enableScroll ? "auto" : "visible",
                   maxHeight: enableScroll ? 500 : "none",
+                  minHeight: 300,
+                  alignContent: "start",
                 }}
               >
                 {symbols.map((symbol) => {
