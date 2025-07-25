@@ -12,6 +12,8 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
 import "./App.css";
+import Tippy from '@tippyjs/react';
+import 'tippy.js/dist/tippy.css'; 
 
 // Default inventory shapes (rect, circle, polygon)
 const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] = [
@@ -433,6 +435,11 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                 <Button size="m">Upload</Button>
                 <input type="file" accept="image/*" className="file-input-hidden" onChange={handleUpload} />
               </label>
+              <Tippy content="Supports SVG/JPEG/JPG/PNG">
+                <div className="ml-5 info-icon">
+                  i
+                </div>
+              </Tippy>
             </div>
           </div>
         </div>

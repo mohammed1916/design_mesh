@@ -78,6 +78,23 @@
   grid-column: span 2;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #e8f0fe;
+  color: #1976d2;
+  font-size: 12px;
+  cursor: help;
+  border: 1px solid #1976d2;
+  font-style: italic;
 }
 
 /* Inventory panel styles */
