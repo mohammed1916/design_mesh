@@ -101,9 +101,9 @@
 .svg-conversion-overlay {
   position: fixed;
   z-index: 1000;
-  left: 0;
+  left: 8px;
   top: 0;
-  width: 100%;
+  margin-right: 8px;
   height: 100%;
   background: rgba(0,0,0,0.15);
   display: flex;
@@ -116,9 +116,9 @@
   border-radius: 12px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.15);
   padding: 32px;
-  min-width: 320px;
+  min-width: 200px;
   text-align: center;
-  margin: 0 8px;
+  margin: 0px 8px;
 }
 
 .svg-conversion-title {
