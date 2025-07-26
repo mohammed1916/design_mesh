@@ -167,6 +167,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   const dispatch = useDispatch();
   const appState = useSelector((state: any) => state.app);
   const symbols = Array.isArray(appState.symbols) ? appState.symbols : [];
+  const [svgConversionData, setSvgConversionData] = React.useState<{ file: File; reader: FileReader } | null>(null);
   const {
     inventory,
     selectedIds,
@@ -205,8 +206,24 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   // Insert symbol to document (no uuid change needed)
   const insertSymbolToDocument = async (symbol: SymbolType) => {
     if (symbol.type === "image" && symbol.src) {
-      const blob = await (await fetch(symbol.src)).blob();
-      await addOnSDKAPI.app.document.addImage(blob);
+      try {
+        const blob = await (await fetch(symbol.src)).blob();
+        // Check if the file is an animated format (GIF or animated WebP)
+        if (blob.type === 'image/gif' || 
+            (blob.type === 'image/webp' && blob.size > 0)) {
+          await addOnSDKAPI.app.document.addAnimatedImage(blob);
+        } else {
+          await addOnSDKAPI.app.document.addImage(blob);
+        }
+      } catch (error: any) {
+        // Handle maxSupportedSize error from Adobe Express API
+        if (error.code === 'maxSupportedSize') {
+          dispatch(setToast("Image exceeds Adobe Express's maximum supported size. Please try a smaller image."));
+        } else {
+          dispatch(setToast("Error adding image: " + (error.message || "Unknown error")));
+        }
+        return;
+      }
     } else {
       let svg = "";
       if (symbol.type === "rect")
@@ -257,32 +274,60 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      dispatch(setToast(`Invalid file type. Supported formats: SVG, JPEG, JPG, PNG, GIF, WebP. Got: ${file.type}`));
+      if (e.target) e.target.value = "";
+      return;
+    }
+
+    // Handle SVG files separately
+    if (file.type === 'image/svg+xml') {
+      const reader = new FileReader();
+      setSvgConversionData({ file, reader });
+      if (e.target) e.target.value = ""; // Clear the file input
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const src = ev.target?.result as string;
-      // Check for duplicate src in symbols
-      // console.log("Symbols before upload:", symbols);
-      // console.log("Checking:", symbols.some((s) => s.uuid));
-      if (symbols.some((s) => s.uuid) && symbols.some((s) => s.src === src && s.type !== "image")) {
-        dispatch(setToast("Something went wrong: plese enter a valid image. (png, jpg, svg etc.)"));
-        if (e.target) e.target.value = "";
-        return;
-      }
-      const symbol: SymbolType = {
-        uuid: uuidv4(),
-        inventoryId: uuidv4(),
-        x: 0,
-        y: 0,
-        width: 80,
-        height: 80,
-        type: "image",
-        src,
-      };
       
-      dispatch(addSymbol(symbol));
-      await insertSymbolToDocument(symbol);
+      // Create image element to get dimensions
+      const img = new Image();
+      img.onload = async () => {
+        const symbol: SymbolType = {
+          uuid: uuidv4(),
+          inventoryId: uuidv4(),
+          x: 0,
+          y: 0,
+          // Maintain aspect ratio while fitting within 80x80
+          width: img.width > img.height ? 80 : Math.floor((img.width / img.height) * 80),
+          height: img.height > img.width ? 80 : Math.floor((img.height / img.width) * 80),
+          type: "image",
+          src,
+        };
+        
+        dispatch(addSymbol(symbol));
+        await insertSymbolToDocument(symbol);
+        if (e.target) e.target.value = "";
+      };
+
+      img.onerror = () => {
+        dispatch(setToast("Error loading image. Please try another file."));
+        if (e.target) e.target.value = "";
+      };
+
+      img.src = src;
+    };
+
+    reader.onerror = () => {
+      dispatch(setToast("Error reading file. Please try again."));
       if (e.target) e.target.value = "";
     };
+
     reader.readAsDataURL(file);
   };
 
@@ -412,9 +457,144 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
     prevInventoryLength.current = inventory.length;
   }, [inventory.length, inventoryOpen]);
 
+  const handleSvgConversion = async (convertToPng: boolean) => {
+    if (!svgConversionData) return;
+    
+    const { file, reader } = svgConversionData;
+    setSvgConversionData(null);
+    
+    // If cancel was clicked, just return
+    if (!convertToPng) {
+      return;
+    }
+    const extractSvgDimensions = (svgText: string) => {
+      const parser = new DOMParser();
+      const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+      const svg = svgDoc.querySelector('svg');
+
+      let width = parseFloat(svg?.getAttribute('width') || '');
+      let height = parseFloat(svg?.getAttribute('height') || '');
+
+      if (!width || !height) {
+        const viewBox = svg?.getAttribute('viewBox');
+        if (viewBox) {
+          const [, , vbWidth, vbHeight] = viewBox.split(/\s+|,/).map(Number);
+          width = vbWidth;
+          height = vbHeight;
+        }
+      }
+
+      // Default fallback
+      if (!width || !height) {
+        width = 500;
+        height = 500;
+      }
+
+      return { width, height };
+    };
+
+
+    const processSvg = async (svgText: string) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+
+      const { width, height } = extractSvgDimensions(svgText);
+      canvas.width = width;
+      canvas.height = height;
+
+      return new Promise<Blob>((resolve, reject) => {
+        img.onload = () => {
+          try {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => {
+              if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error('Failed to create PNG from SVG'));
+              }
+            }, 'image/png', 1.0);
+          } catch (error) {
+            reject(new Error('Failed to draw SVG: ' + error.message));
+          }
+        };
+
+        img.onerror = (e) => {
+          reject(new Error('Failed to load SVG: Image loading error'));
+        };
+
+        // Clean up SVG text to ensure valid XML
+        const cleanSvg = svgText.trim()
+          .replace(/[\n\r\t]/g, ' ')
+          .replace(/>\s+</g, '><');
+
+        const svgBlob = new Blob([cleanSvg], { type: 'image/svg+xml' });
+        img.src = URL.createObjectURL(svgBlob);
+      });
+    };
+
+
+    reader.onload = async (ev) => {
+      try {
+        let svgData = ev.target?.result as string;
+        // If the result is base64, we need to decode it first
+        if (svgData.startsWith('data:image/svg+xml;base64,')) {
+          svgData = atob(svgData.replace('data:image/svg+xml;base64,', ''));
+        }
+        const convertedBlob = await processSvg(svgData);
+        
+        // Create converted file URL
+        const convertedUrl = URL.createObjectURL(convertedBlob);
+        
+        const symbol: SymbolType = {
+          uuid: uuidv4(),
+          inventoryId: uuidv4(),
+          x: 0,
+          y: 0,
+          width: 80,
+          height: 80,
+          type: "image",
+          src: convertedUrl,
+        };
+        
+        dispatch(addSymbol(symbol));
+        await insertSymbolToDocument(symbol);
+      } catch (error) {
+        dispatch(setToast(`Error converting SVG: ${error.message}`));
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
   return (
     <Theme system="express" scale="medium" color="light">
       <div className="container">
+        {svgConversionData && (
+          <div className="svg-conversion-overlay">
+            <div className="svg-conversion-dialog">
+              <div className="svg-conversion-title">Convert SVG Format</div>
+              <div className="svg-conversion-message">
+                This SVG will be converted to PNG format for better compatibility with Adobe Express.
+              </div>
+              <div className="svg-conversion-buttons">
+                <button
+                  className="conversion-btn primary"
+                  onClick={() => handleSvgConversion(true)}
+                >
+                  Convert & Add
+                </button>
+                <button
+                  className="conversion-btn cancel"
+                  onClick={() => setSvgConversionData(null)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Top shape/upload controls - modern flex card */}
         <div className="top-controls">
           <div className="shape-row">
@@ -433,7 +613,11 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
             <div className="shape-upload">
               <label>
                 <Button size="m">Upload</Button>
-                <input type="file" accept="image/*" className="file-input-hidden" onChange={handleUpload} />
+                <input 
+                  type="file" 
+                  accept=".svg,.jpg,.jpeg,.png,.gif,.webp,image/svg+xml,image/jpeg,image/png,image/gif,image/webp" 
+                  className="file-input-hidden" 
+                  onChange={handleUpload} />
               </label>
               <Tippy content="Supports SVG/JPEG/JPG/PNG">
                 <div className="ml-5 info-icon">
@@ -498,13 +682,12 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                   
                   
                   {editInventory && selectedIds.length > 0 && (
-                    <div className="inventory-edit-row" style={{ display: "flex", gap: 10, alignItems: "center", margin: "16px 0" }}>
+                    <div className="inventory-edit-row">
                       <input
                         placeholder="Enter tag for selected symbol(s)"
                         value={newTag}
                         onChange={(e) => dispatch(setNewTag(e.target.value))}
                         className="inventory-input"
-                        style={{ padding: "6px 8px", borderRadius: "4px", border: "1px solid #ccc", fontSize: "14px", minWidth: "200px" }}
                       />
                       <Button variant="primary" onClick={() => handleAddTag(selectedIds, newTag)}>
                         Add Tag
@@ -547,7 +730,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                             }}
                             className={`select-inventory-btn-modern${selectedIds.includes(inv.uuid) ? " selected" : ""}`}
                             aria-label="Select inventory item"
-                            style={{ position: "absolute", top: 2, left: 6, background: selectedIds.includes(inv.uuid) ? "#1976d2" : "#eee", color: selectedIds.includes(inv.uuid) ? "#fff" : "#333", border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}
+
                           >
                             ✓
                           </button>
@@ -561,7 +744,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                           <div
                             className="inventory-card-overlay"
                             onClick={() => handleInsertFromInventory(inv)}
-                            style={{ position: "absolute", inset: 0, cursor: "pointer", borderRadius: 14, zIndex: 1, background: "rgba(0,0,0,0)" }}
+
                           />
                         )}
                       </div>
@@ -592,7 +775,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
               </motion.div>
             )}
           </AnimatePresence>
-          <div ref={inventoryRef} style={{ height: 0, overflow: "hidden" }} />
+          <div ref={inventoryRef} className="inventory-hidden" />
         </div>
       </div>
     </Theme>
