@@ -72,7 +72,7 @@ interface SvgConversionParams {
   width?: number;
   height?: number;
   maintainAspectRatio: boolean;
-  format: 'png' | 'jpeg' | 'webp';
+  format: 'png' | 'jpeg';
 }
 
 // Default conversion parameters
@@ -230,9 +230,9 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
     if (symbol.type === "image" && symbol.src) {
       try {
         const blob = await (await fetch(symbol.src)).blob();
-        // Check if the file is an animated format (GIF or animated WebP)
+        // Check if the file is an animated format (GIF)
         if (blob.type === 'image/gif' || 
-            (blob.type === 'image/webp' && blob.size > 0)) {
+            ( blob.size > 0)) {
           await addOnSDKAPI.app.document.addAnimatedImage(blob);
         } else {
           await addOnSDKAPI.app.document.addImage(blob);
@@ -298,9 +298,9 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
     if (!file) return;
 
     // Check file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml', 'image/gif', 'image/webp'];
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml', 'image/gif'];
     if (!validTypes.includes(file.type)) {
-      dispatch(setToast(`Invalid file type. Supported formats: SVG, JPEG, JPG, PNG, GIF, WebP. Got: ${file.type}`));
+      dispatch(setToast(`Invalid file type. Supported formats: SVG, JPEG, JPG, PNG, GIF. Got: ${file.type}`));
       if (e.target) e.target.value = "";
       return;
     }
@@ -604,12 +604,11 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                     value={svgConversionData.params.format}
                     onChange={(e) => setSvgConversionData({
                       ...svgConversionData,
-                      params: { ...svgConversionData.params, format: e.target.value as 'png' | 'jpeg' | 'webp' }
+                      params: { ...svgConversionData.params, format: e.target.value as 'png' | 'jpeg' }
                     })}
                   >
                     <option value="png">PNG</option>
                     <option value="jpeg">JPEG</option>
-                    <option value="webp">WebP</option>
                   </select>
                 </div>
                 <div className="form-group">
@@ -687,7 +686,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
                 <Button size="m">Upload</Button>
                 <input 
                   type="file" 
-                  accept=".svg,.jpg,.jpeg,.png,.gif,.webp,image/svg+xml,image/jpeg,image/png,image/gif,image/webp" 
+                  accept=".svg,.jpg,.jpeg,.png,.gif,image/svg+xml,image/jpeg,image/png,image/gif" 
                   className="file-input-hidden" 
                   onChange={handleUpload} />
               </label>
