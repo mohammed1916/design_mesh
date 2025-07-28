@@ -67,6 +67,28 @@ const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] 
   },
 ];
 
+interface SvgConversionParams {
+  quality: number;  // 1-100
+  width?: number;
+  height?: number;
+  maintainAspectRatio: boolean;
+  format: 'png' | 'jpeg' | 'webp';
+}
+
+// Default conversion parameters
+const defaultConversionParams: SvgConversionParams = {
+  quality: 100,
+  maintainAspectRatio: true,
+  format: 'png'
+};
+
+// Utility function to encode SVG data with UTF-8 support
+const encodeSvgToBase64 = (svgData: string): string => {
+  const encoder = new TextEncoder();
+  const encoded = encoder.encode(svgData);
+  return btoa(String.fromCharCode(...new Uint8Array(encoded.buffer)));
+};
+
 // Redux slice for symbols, inventory, tags, toast, selection
 const initialState = {
   symbols: [
@@ -167,7 +189,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   const dispatch = useDispatch();
   const appState = useSelector((state: any) => state.app);
   const symbols = Array.isArray(appState.symbols) ? appState.symbols : [];
-  const [svgConversionData, setSvgConversionData] = React.useState<{ file: File; reader: FileReader } | null>(null);
+  const [svgConversionData, setSvgConversionData] = React.useState<{ file: File; reader: FileReader; params: SvgConversionParams } | null>(null);
   const {
     inventory,
     selectedIds,
@@ -188,7 +210,7 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
         ctx.drawImage(img, 0, 0);
         canvas.toBlob((blob) => resolve(blob!), "image/png");
       };
-      img.src = "data:image/svg+xml;base64," + btoa(svg);
+      img.src = "data:image/svg+xml;base64," + encodeSvgToBase64(svg);
     });
   }
 
@@ -286,7 +308,11 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
     // Handle SVG files separately
     if (file.type === 'image/svg+xml') {
       const reader = new FileReader();
-      setSvgConversionData({ file, reader });
+      setSvgConversionData({ 
+        file, 
+        reader,
+        params: defaultConversionParams 
+      });
       if (e.target) e.target.value = ""; // Clear the file input
       return;
     }
@@ -460,93 +486,76 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   const handleSvgConversion = async (convertToPng: boolean) => {
     if (!svgConversionData) return;
     
-    const { file, reader } = svgConversionData;
+    const { file, reader, params } = svgConversionData;
     setSvgConversionData(null);
     
-    // If cancel was clicked, just return
-    if (!convertToPng) {
-      return;
-    }
-    const extractSvgDimensions = (svgText: string) => {
-      const parser = new DOMParser();
-      const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
-      const svg = svgDoc.querySelector('svg');
-
-      let width = parseFloat(svg?.getAttribute('width') || '');
-      let height = parseFloat(svg?.getAttribute('height') || '');
-
-      if (!width || !height) {
-        const viewBox = svg?.getAttribute('viewBox');
-        if (viewBox) {
-          const [, , vbWidth, vbHeight] = viewBox.split(/\s+|,/).map(Number);
-          width = vbWidth;
-          height = vbHeight;
-        }
-      }
-
-      // Default fallback
-      if (!width || !height) {
-        width = 500;
-        height = 500;
-      }
-
-      return { width, height };
-    };
-
-
-    const processSvg = async (svgText: string) => {
-      const img = new Image();
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d')!;
-
-      const { width, height } = extractSvgDimensions(svgText);
-      canvas.width = width;
-      canvas.height = height;
-
-      return new Promise<Blob>((resolve, reject) => {
-        img.onload = () => {
-          try {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, width, height);
-            canvas.toBlob((blob) => {
-              if (blob) {
-                resolve(blob);
-              } else {
-                reject(new Error('Failed to create PNG from SVG'));
-              }
-            }, 'image/png', 1.0);
-          } catch (error) {
-            reject(new Error('Failed to draw SVG: ' + error.message));
-          }
-        };
-
-        img.onerror = (e) => {
-          reject(new Error('Failed to load SVG: Image loading error'));
-        };
-
-        // Clean up SVG text to ensure valid XML
-        const cleanSvg = svgText.trim()
-          .replace(/[\n\r\t]/g, ' ')
-          .replace(/>\s+</g, '><');
-
-        const svgBlob = new Blob([cleanSvg], { type: 'image/svg+xml' });
-        img.src = URL.createObjectURL(svgBlob);
-      });
-    };
-
+    if (!convertToPng) return;
 
     reader.onload = async (ev) => {
       try {
         let svgData = ev.target?.result as string;
-        // If the result is base64, we need to decode it first
         if (svgData.startsWith('data:image/svg+xml;base64,')) {
           svgData = atob(svgData.replace('data:image/svg+xml;base64,', ''));
         }
-        const convertedBlob = await processSvg(svgData);
+
+        // Create SVG image and set dimensions
+        const parser = new DOMParser();
+        const svgDoc = parser.parseFromString(svgData, 'image/svg+xml');
+        const svgElement = svgDoc.documentElement;
+
+        // Get original dimensions
+        const originalWidth = parseFloat(svgElement.getAttribute('width') || '0') || 
+                            parseFloat((svgElement.getAttribute('viewBox')?.split(' ')[2] || '0')) || 500;
+        const originalHeight = parseFloat(svgElement.getAttribute('height') || '0') || 
+                             parseFloat((svgElement.getAttribute('viewBox')?.split(' ')[3] || '0')) || 500;
+
+        // Calculate new dimensions maintaining aspect ratio if needed
+        let targetWidth = params.width || originalWidth;
+        let targetHeight = params.height || originalHeight;
         
-        // Create converted file URL
-        const convertedUrl = URL.createObjectURL(convertedBlob);
-        
+        if (params.maintainAspectRatio && (params.width || params.height)) {
+          const ratio = originalWidth / originalHeight;
+          if (params.width && !params.height) {
+            targetHeight = params.width / ratio;
+          } else if (params.height && !params.width) {
+            targetWidth = params.height * ratio;
+          }
+        }
+
+        // Create a canvas with the target dimensions
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d')!;
+
+        // Draw white background if format doesn't support transparency
+        if (params.format === 'jpeg') {
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Create image and draw it on canvas
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = 'data:image/svg+xml;base64,' + encodeSvgToBase64(svgData);
+        });
+
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+        // Convert to the desired format
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob(
+            (b) => resolve(b!),
+            `image/${params.format}`,
+            params.quality / 100
+          );
+        });
+
+        const convertedUrl = URL.createObjectURL(blob);
+
+        // Create and add the symbol
         const symbol: SymbolType = {
           uuid: uuidv4(),
           inventoryId: uuidv4(),
@@ -574,9 +583,72 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
         {svgConversionData && (
           <div className="svg-conversion-overlay">
             <div className="svg-conversion-dialog">
-              <div className="svg-conversion-title">Convert SVG Format</div>
-              <div className="svg-conversion-message">
-                This SVG will be converted to PNG format for better compatibility with Adobe Express.
+              <div className="svg-conversion-title">SVG Conversion Settings</div>
+              <div className="svg-conversion-form">
+                <div className="form-group">
+                  <label>Quality (1-100)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={svgConversionData.params.quality}
+                    onChange={(e) => setSvgConversionData({
+                      ...svgConversionData,
+                      params: { ...svgConversionData.params, quality: Number(e.target.value) }
+                    })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Format</label>
+                  <select
+                    value={svgConversionData.params.format}
+                    onChange={(e) => setSvgConversionData({
+                      ...svgConversionData,
+                      params: { ...svgConversionData.params, format: e.target.value as 'png' | 'jpeg' | 'webp' }
+                    })}
+                  >
+                    <option value="png">PNG</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="webp">WebP</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Width (optional)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={svgConversionData.params.width || ''}
+                    onChange={(e) => setSvgConversionData({
+                      ...svgConversionData,
+                      params: { ...svgConversionData.params, width: Number(e.target.value) || undefined }
+                    })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Height (optional)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={svgConversionData.params.height || ''}
+                    onChange={(e) => setSvgConversionData({
+                      ...svgConversionData,
+                      params: { ...svgConversionData.params, height: Number(e.target.value) || undefined }
+                    })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={svgConversionData.params.maintainAspectRatio}
+                      onChange={(e) => setSvgConversionData({
+                        ...svgConversionData,
+                        params: { ...svgConversionData.params, maintainAspectRatio: e.target.checked }
+                      })}
+                    />
+                    Maintain Aspect Ratio
+                  </label>
+                </div>
               </div>
               <div className="svg-conversion-buttons">
                 <button
