@@ -68,16 +68,12 @@ const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] 
 ];
 
 interface SvgConversionParams {
-  quality: number;  // 1-100
-  width?: number;
-  height?: number;
-  maintainAspectRatio: boolean;
   format: 'png' | 'jpeg';
+  maintainAspectRatio: boolean;
 }
 
 // Default conversion parameters
 const defaultConversionParams: SvgConversionParams = {
-  quality: 100,
   maintainAspectRatio: true,
   format: 'png'
 };
@@ -344,6 +340,7 @@ async function svgToPngBlob(svg: string, width: number, height: number): Promise
         if (error.code === 'maxSupportedSize') {
           dispatch(setToast("Image exceeds Adobe Express's maximum supported size. Please try a smaller image."));
         } else {
+          // Max 65000000 = close to 8062*8062
           dispatch(setToast("Error adding image: " + (error.message || "Unknown error")));
         }
         console.error("Image insertion error:", error);
@@ -424,11 +421,7 @@ async function svgToPngBlob(svg: string, width: number, height: number): Promise
           setSvgConversionData({ 
             file, 
             reader,
-            params: {
-              ...defaultConversionParams,
-              width,
-              height
-            }
+            params: defaultConversionParams
           });
         } catch (error) {
           console.error('SVG parsing error:', error);
@@ -627,22 +620,23 @@ async function svgToPngBlob(svg: string, width: number, height: number): Promise
           type: 'image/svg+xml'
         });
 
-        // Get original dimensions
+        // Use fixed max dimensions
+        const MAX_DIMENSION = 8062;
         const originalWidth = parseFloat(svgElement.getAttribute('width') || '0') || 
                             parseFloat((svgElement.getAttribute('viewBox')?.split(' ')[2] || '0')) || 500;
         const originalHeight = parseFloat(svgElement.getAttribute('height') || '0') || 
                              parseFloat((svgElement.getAttribute('viewBox')?.split(' ')[3] || '0')) || 500;
 
-        // Calculate new dimensions maintaining aspect ratio if needed
-        let targetWidth = params.width || originalWidth;
-        let targetHeight = params.height || originalHeight;
+        // Calculate dimensions maintaining aspect ratio
+        let targetWidth = MAX_DIMENSION;
+        let targetHeight = MAX_DIMENSION;
         
-        if (params.maintainAspectRatio && (params.width || params.height)) {
+        if (params.maintainAspectRatio) {
           const ratio = originalWidth / originalHeight;
-          if (params.width && !params.height) {
-            targetHeight = params.width / ratio;
-          } else if (params.height && !params.width) {
-            targetWidth = params.height * ratio;
+          if (ratio > 1) {
+            targetHeight = MAX_DIMENSION / ratio;
+          } else {
+            targetWidth = MAX_DIMENSION * ratio;
           }
         }
 
@@ -668,12 +662,12 @@ async function svgToPngBlob(svg: string, width: number, height: number): Promise
 
         ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-        // Convert to the desired format
+        // Convert to the desired format with maximum quality
         const blob = await new Promise<Blob>((resolve) => {
           canvas.toBlob(
             (b) => resolve(b!),
             `image/${params.format}`,
-            params.quality / 100
+            1.0  // Maximum quality (100%)
           );
         });
 
@@ -710,19 +704,6 @@ async function svgToPngBlob(svg: string, width: number, height: number): Promise
               <div className="svg-conversion-title">SVG Conversion Settings</div>
               <div className="svg-conversion-form">
                 <div className="form-group">
-                  <label>Quality (1-100)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={svgConversionData.params.quality}
-                    onChange={(e) => setSvgConversionData({
-                      ...svgConversionData,
-                      params: { ...svgConversionData.params, quality: Number(e.target.value) }
-                    })}
-                  />
-                </div>
-                <div className="form-group">
                   <label>Format</label>
                   <select
                     id="format-select"
@@ -737,38 +718,6 @@ async function svgToPngBlob(svg: string, width: number, height: number): Promise
                     <option value="png">PNG</option>
                     <option value="jpeg">JPEG</option>
                   </select>
-                </div>
-                <div className="form-group">
-                  <label>Width (optional)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    id="width-input"
-                    aria-label="Width in pixels"
-                    title="Width in pixels"
-                    placeholder="Width in pixels"
-                    value={svgConversionData.params.width || ''}
-                    onChange={(e) => setSvgConversionData({
-                      ...svgConversionData,
-                      params: { ...svgConversionData.params, width: Number(e.target.value) || undefined }
-                    })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Height (optional)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    id="height-input"
-                    aria-label="Height in pixels"
-                    title="Height in pixels"
-                    placeholder="Height in pixels"
-                    value={svgConversionData.params.height || ''}
-                    onChange={(e) => setSvgConversionData({
-                      ...svgConversionData,
-                      params: { ...svgConversionData.params, height: Number(e.target.value) || undefined }
-                    })}
-                  />
                 </div>
                 <div className="form-group">
                   <label>
