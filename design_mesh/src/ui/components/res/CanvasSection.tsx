@@ -115,9 +115,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
     ) : null
   );
 
-  React.useEffect(() => {
-    console.log("Canvas symbols:", symbols);
-  }, [symbols]);
+  // Debug logging removed to prevent console spam
 
   return (
     <div className="mt-12" style={{ position: "relative" }}>

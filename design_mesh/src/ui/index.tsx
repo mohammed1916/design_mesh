@@ -2,7 +2,8 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { DocumentSandboxApi } from "../models/DocumentSandboxApi";
-import App, { store } from "./components/App";
+import App from "./components/App";
+import { store } from "./store/appStore";
 import { Provider } from "react-redux";
 
 import addOnUISdk, { RuntimeType } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
