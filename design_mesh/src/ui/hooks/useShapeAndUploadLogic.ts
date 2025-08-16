@@ -4,7 +4,7 @@ import { addSymbol, setToast } from "../store/appStore";
 import { AddOnSDKAPI } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
 import { SymbolType } from "../components/res/CanvasSection";
 import { SvgConversionParams, defaultConversionParams } from "../constants/inventory";
-import { sourceToSvg, unitsToPixels, encodeSvgToBase64, svgToPngBlob } from "../utils/svgUtils";
+import { sourceToSvg, unitsToPixels, encodeSvgToBase64, svgToBlob } from "../utils/svgUtils";
 import { v4 as uuidv4 } from "uuid";
 
 export const useShapeAndUploadLogic = (
@@ -61,7 +61,7 @@ export const useShapeAndUploadLogic = (
         svg = `<path d="M10,50 Q50,10 90,50" fill="none" stroke="#ef9a9a" stroke-width="3" />`; // Quadratic Bezier curve
 
       const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}">${svg}</svg>`;
-      const blob = await svgToPngBlob(fullSvg, symbol.width, symbol.height);
+      const blob = await svgToBlob(fullSvg, symbol.width, symbol.height, 'png');
       await addOnSDKAPI.app.document.addImage(blob);
     }
   }, [addOnSDKAPI, dispatch]);
@@ -203,38 +203,21 @@ export const useShapeAndUploadLogic = (
           }
         }
 
-        // Create a canvas with the target dimensions
-        const canvas = document.createElement('canvas');
-        canvas.width = targetWidth;
-        canvas.height = targetHeight;
-        const ctx = canvas.getContext('2d')!;
+        // Use the utility function to convert SVG to the desired format
+        const blob = await svgToBlob(
+          new XMLSerializer().serializeToString(svgElement),
+          targetWidth,
+          targetHeight,
+          params.format,
+          1.0 // Maximum quality (100%)
+        );
 
-        // Draw white background if format doesn't support transparency
-        if (params.format === 'jpeg') {
-          ctx.fillStyle = 'white';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        // Create image and draw it on canvas
-        const img = new Image();
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-          img.src = 'data:image/svg+xml;base64,' + encodeSvgToBase64(svgData);
+        // Convert blob to base64 data URL for persistent storage
+        const convertedUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
         });
-
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-        // Convert to the desired format with maximum quality
-        const blob = await new Promise<Blob>((resolve) => {
-          canvas.toBlob(
-            (b) => resolve(b!),
-            `image/${params.format}`,
-            1.0  // Maximum quality (100%)
-          );
-        });
-
-        const convertedUrl = URL.createObjectURL(blob);
 
         // Create and add the symbol
         const symbol: SymbolType = {

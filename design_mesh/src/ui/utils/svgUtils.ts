@@ -88,7 +88,13 @@ export const sourceToSvg = async (
   return svg;
 };
 
-export async function svgToPngBlob(svg: string, width: number, height: number): Promise<Blob> {
+export async function svgToBlob(
+  svg: string, 
+  width: number, 
+  height: number, 
+  format: 'png' | 'jpeg' = 'png', 
+  quality: number = 1.0
+): Promise<Blob> {
   try {
     const svgElement = await sourceToSvg(svg);
     return new Promise((resolve) => {
@@ -98,13 +104,20 @@ export async function svgToPngBlob(svg: string, width: number, height: number): 
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext("2d")!;
+        
+        // Fill with white background for JPEG (doesn't support transparency)
+        if (format === 'jpeg') {
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
         ctx.drawImage(img, 0, 0);
-        canvas.toBlob((blob) => resolve(blob!), "image/png");
+        canvas.toBlob((blob) => resolve(blob!), `image/${format}`, quality);
       };
       img.src = "data:image/svg+xml;base64," + encodeSvgToBase64(new XMLSerializer().serializeToString(svgElement));
     });
   } catch (error) {
-    console.error("SVG conversion error:", error);
+    console.error(`SVG to ${format.toUpperCase()} conversion error:`, error);
     throw error;
   }
 }

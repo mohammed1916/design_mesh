@@ -24,7 +24,7 @@ The App.tsx has been refactored into a modular component structure for better ma
   - `sourceToSvg()` - Convert SVG source to DOM element
   - `unitsToPixels()` - Convert CSS units to pixels
   - `encodeSvgToBase64()` - UTF-8 aware base64 encoding
-  - `svgToPngBlob()` - Convert SVG to PNG blob
+  - `svgToBlob()` - Convert SVG to PNG/JPEG blob with format options
 
 ### 📁 Hooks (`src/ui/hooks/`)
 
