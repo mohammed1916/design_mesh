@@ -138,14 +138,14 @@ const CanvasSection: React.FC<CanvasProps> = ({
         <div
           style={{
             transformOrigin: "top center",
-            background: "#fffbe6",
-            color: "#222",
-            border: "1.5px solid #d6c585",
+            background: "var(--adobe-background)",
+            color: "var(--adobe-text)",
+            border: "1.5px solid var(--adobe-border)",
             borderRadius: 10,
             padding: "10px 32px",
             fontWeight: 600,
             fontSize: 16,
-            boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+            boxShadow: "0 2px 12px var(--adobe-shadow)",
             zIndex: 1001,
             display: "flex",
             alignItems: "flex-start",
@@ -183,9 +183,9 @@ const CanvasSection: React.FC<CanvasProps> = ({
         <div style={{
           position: "absolute", zIndex: 10, left: 0, top: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center"
         }}>
-          <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 2px 16px rgba(0,0,0,0.15)", padding: 32, minWidth: 200, textAlign: "center", marginLeft: 8, marginRight: 8 }}>
-            <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Clear all symbols?</div>
-            <div style={{ marginBottom: 24, color: "#555" }}>Are you sure you want to remove all symbols from the canvas?</div>
+          <div style={{ background: "var(--adobe-background)", borderRadius: 12, boxShadow: "0 2px 16px var(--adobe-shadow)", padding: 32, minWidth: 200, textAlign: "center", marginLeft: 8, marginRight: 8 }}>
+            <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: "var(--adobe-text)" }}>Clear all symbols?</div>
+            <div style={{ marginBottom: 24, color: "var(--adobe-text-secondary)" }}>Are you sure you want to remove all symbols from the canvas?</div>
             <div style={{ display: "flex", gap: 16, justifyContent: "center" }}>
               <button style={{ padding: "8px 24px", borderRadius: 6, background: "#d32f2f", color: "#fff", border: 0, fontWeight: 600, cursor: "pointer" }} onClick={() => { setSymbols([]); setShowClearConfirm(false); }}>Yes, clear</button>
               <button style={{ padding: "8px 24px", borderRadius: 6, background: "#eee", color: "#333", border: 0, fontWeight: 500, cursor: "pointer" }} onClick={() => setShowClearConfirm(false)}>Cancel</button>
@@ -232,12 +232,12 @@ const CanvasSection: React.FC<CanvasProps> = ({
                   gridTemplateColumns: `repeat(${GRID_COLS}, ${GRID_CELL_WIDTH}px)`,
                   gap: `${GRID_GAP}px`,
                   rowGap: `${GRID_GAP/2}px`, 
-                  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+                  background: "var(--adobe-surface)",
                   borderRadius: 16,
                   padding: 12,
                   justifyContent: "start",
-                  boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
-                  border: "1.5px solid #e0e7ef",
+                  boxShadow: "0 4px 24px var(--adobe-shadow)",
+                  border: "1.5px solid var(--adobe-border)",
                   overflow: enableScroll ? "auto" : "visible",
                   maxHeight: enableScroll ? 500 : "none",
                   minHeight: 300,
@@ -252,13 +252,13 @@ const CanvasSection: React.FC<CanvasProps> = ({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    background: "#fff",
+                    background: "var(--adobe-background)",
                     borderRadius: 16,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    boxShadow: "0 2px 8px var(--adobe-shadow)",
                     position: "relative" as const,
                     transition: "box-shadow 0.2s",
-                    border: inInventory ? "0.5px solid #f7e9b0" : "0.5px solid #e3e8f0",
-                    outline: inInventory ? "0.1px solid #d6c585" : "none",
+                    border: inInventory ? "0.5px solid var(--adobe-accent)" : "0.5px solid var(--adobe-border)",
+                    outline: inInventory ? "0.1px solid var(--adobe-accent-hover)" : "none",
                   };
                   const handleInsert = () => onInsertSymbol(symbol);
                   const handleRemove = (e: React.MouseEvent) => {
