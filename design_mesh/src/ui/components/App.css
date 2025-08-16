@@ -188,19 +188,26 @@
 
 /* Inventory panel styles */
 .inventory-edit-row {
+  margin-top: 22px;
   display: flex;
-  gap: 10px;
+  gap: 18px;
   align-items: center;
-  margin: 16px 0;
 }
 
 .inventory-input {
-  padding: 6px 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-  min-width: 200px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #90caf9;
+  font-size: 16px;
+  min-width: 240px;
   flex: 1;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  transition: border 0.2s;
+}
+
+.inventory-input:focus {
+  border-color: #1a237e;
 }
 
 .select-inventory-btn-modern {
@@ -240,19 +247,6 @@
   height: 0;
   overflow: hidden;
 }
-.inventory-edit-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin: 16px 0;
-}
-
-.inventory-input {
-  flex: 1;
-  padding: 6px 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
 
 .inventory-button {
   padding: 6px 12px;
@@ -275,10 +269,6 @@
   border-radius: 4px;
 }
 
-.inventory-hidden {
-  height: 0;
-  overflow: hidden;
-}
 .inventory-panel {
   background: linear-gradient(90deg, #f7f8fa 80%, #e3eafc 100%);
   border-radius: 18px;
@@ -353,27 +343,6 @@
 }
 .inventory-select:focus {
   border-color: #90caf9;
-}
-
-.inventory-edit-row {
-  margin-top: 22px;
-  display: flex;
-  gap: 18px;
-  align-items: center;
-}
-
-.inventory-input {
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 1px solid #90caf9;
-  font-size: 16px;
-  min-width: 240px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-  transition: border 0.2s;
-}
-.inventory-input:focus {
-  border-color: #1a237e;
 }
 
 /* --- Inventory Grid Layout: Efficient & Clean --- */
