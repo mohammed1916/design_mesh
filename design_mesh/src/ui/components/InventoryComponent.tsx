@@ -49,10 +49,8 @@ const InventoryComponent: React.FC<InventoryProps> = ({
   return (
     <div className="border border-gray-300 rounded-xl shadow-sm mt-24">
       <Button
-        size="m"
-        variant="secondary"
         onClick={onToggle}
-        className="inline-flex items-center gap-2 rounded-xl bg-gray-100 p-4 font-medium text-gray-700 hover:bg-gray-200 transition-colors w-full !justify-start"
+        className="inventory-toggle-btn"
       >
         <span className="text-xl leading-none">{isOpen ? "▼ " : "▶ "}</span>
         <span>Inventory</span>

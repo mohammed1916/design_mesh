@@ -195,8 +195,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
       <div className="border border-gray-300 rounded-xl shadow-sm">
         <button
           onClick={() => setOpen(!open)}
-          className="inline-flex items-center gap-2 rounded-xl bg-gray-100 p-4 font-medium text-gray-700 hover:bg-gray-200 transition-colors w-full"
-          style={{ cursor: "pointer", userSelect: "none" }}
+          className="inventory-toggle-btn"
         >
           {/* <span className="text-xl leading-none">{open ? "🎯" : "🎨"}</span> */}
           <span className="text-xl leading-none">{open ? "▼ " : "▶ "}</span>

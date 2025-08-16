@@ -333,6 +333,26 @@
   color: #0d133d;
 }
 
+.inventory-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: var(--radius);
+  background-color: hsl(var(--secondary));
+  padding: 1rem;
+  font-weight: 500;
+  color: hsl(var(--secondary-foreground));
+  transition: background-color 0.15s ease;
+  width: 100%;
+  justify-content: flex-start !important;
+  border: none;
+  cursor: pointer;
+}
+
+.inventory-toggle-btn:hover {
+  background-color: hsl(var(--muted));
+}
+
 .inventory-select {
   border: 1px solid #d1d5db;
   border-radius: 8px;
@@ -477,6 +497,16 @@
     box-shadow: 0 2px 8px rgba(255, 215, 79, 0.15);
     animation: moving-colors 2s linear infinite;
     transition: background 0.2s, color 0.2s;
+}
+
+/* Accordion arrow rotation */
+.accordion-arrow {
+  transition: transform 0.2s ease;
+  transform: rotate(0deg);
+}
+
+.accordion-arrow.open {
+  transform: rotate(90deg);
 }
 
 @keyframes moving-colors {
