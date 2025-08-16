@@ -338,19 +338,21 @@
   align-items: center;
   gap: 0.5rem;
   border-radius: var(--radius);
-  background-color: hsl(var(--secondary));
+  background-color: var(--adobe-surface);
   padding: 1rem;
   font-weight: 500;
-  color: hsl(var(--secondary-foreground));
-  transition: background-color 0.15s ease;
+  color: var(--adobe-text);
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
   width: 100%;
   justify-content: flex-start !important;
-  border: none;
+  border: 1px solid var(--adobe-border);
   cursor: pointer;
+  box-shadow: 0 2px 8px var(--adobe-shadow);
 }
 
 .inventory-toggle-btn:hover {
-  background-color: hsl(var(--muted));
+  background-color: var(--adobe-background);
+  box-shadow: 0 4px 16px var(--adobe-shadow-hover);
 }
 
 .inventory-select {
