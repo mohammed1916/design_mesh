@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./CanvasSection.css";
 import { RectIcon, CircleIcon, PolygonIcon, CurveIcon, ClockIcon } from "../ShapeIcons";
+import { Button } from "@swc-react/button";
 
 export type SymbolType = {
   uuid: string; // unique per instance on canvas/document
@@ -193,14 +194,14 @@ const CanvasSection: React.FC<CanvasProps> = ({
         </div>
       )}
       <div className="border border-gray-300 rounded-xl shadow-sm">
-        <button
+        <Button
           onClick={() => setOpen(!open)}
           className="inventory-toggle-btn"
         >
           {/* <span className="text-xl leading-none">{open ? "🎯" : "🎨"}</span> */}
           <span className="text-xl leading-none">{open ? "▼ " : "▶ "}</span>
           <span>Symbols</span>
-        </button>
+        </Button>
         <AnimatePresence initial={false}>
           {open && (
             <motion.div
