@@ -87,6 +87,7 @@ const InventoryComponent: React.FC<InventoryProps> = ({
                 <div className="inventory-edit-row">
                   <input
                     placeholder="Enter tag for selected symbol(s)"
+                    title="Enter tag for selected symbol(s)"
                     value={newTag}
                     onChange={(e) => onSetNewTag(e.target.value)}
                     className="inventory-input"
