@@ -62,3 +62,14 @@ export const defaultConversionParams: SvgConversionParams = {
   maintainAspectRatio: true,
   format: 'png'
 };
+
+// Shape colors - centralized color constants used by all shape components
+export const SHAPE_COLORS = {
+  RECT: "#90caf9",      // Light blue
+  CIRCLE: "#a5d6a7",    // Light green
+  POLYGON: "#ffcc80",   // Light orange
+  CURVE: "#ef9a9a",     // Light red/pink
+  CLOCK: "#ffe082",     // Light yellow
+  INVENTORY: "gold",    // Gold for inventory items
+  STROKE: "#333",       // Dark stroke
+} as const;

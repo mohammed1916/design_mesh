@@ -3,6 +3,7 @@ import { Button } from "@swc-react/button";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
 import { SymbolType } from "./res/CanvasSection";
+import { RectIcon, CircleIcon, PolygonIcon, CurveIcon } from "./ShapeIcons";
 
 interface InventoryProps {
   isOpen: boolean;
@@ -104,26 +105,18 @@ const InventoryComponent: React.FC<InventoryProps> = ({
                 </div>
               ) : null}
               
-              <div className="inventory-grid mb-4">
+                <div className="inventory-grid mb-4">
                 {filteredInventory.map((inv: SymbolType & { tag?: string; isDefault?: boolean }) => (
                   <div key={inv.inventoryId} className="inventory-card">
                     {/* Icon rendering */}
                     {inv.type === "rect" ? (
-                      <svg width={30} height={20}>
-                        <rect x={2} y={2} width={26} height={16} fill="gold" stroke="#333" />
-                      </svg>
+                      <RectIcon size="small" />
                     ) : inv.type === "circle" ? (
-                      <svg width={30} height={30}>
-                        <circle cx={15} cy={15} r={13} fill="gold" stroke="#333" />
-                      </svg>
+                      <CircleIcon size="small" />
                     ) : inv.type === "polygon" ? (
-                      <svg width={30} height={30}>
-                        <polygon points="15,2 28,28 2,28" fill="gold" stroke="#333" />
-                      </svg>
+                      <PolygonIcon size="small" />
                     ) : inv.type === "curve" ? (
-                      <svg width={30} height={30}>
-                        <path d="M2,15 Q15,2 28,15" fill="none" stroke="#ef9a9a" strokeWidth={2} />
-                      </svg>
+                      <CurveIcon size="small" />
                     ) : inv.type === "image" && inv.src ? (
                       <img src={inv.src} width={30} height={30} alt="Inventory" />
                     ) : null}

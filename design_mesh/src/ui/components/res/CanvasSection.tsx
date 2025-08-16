@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./CanvasSection.css";
+import { RectIcon, CircleIcon, PolygonIcon, CurveIcon, ClockIcon } from "../ShapeIcons";
 
 export type SymbolType = {
   uuid: string; // unique per instance on canvas/document
@@ -271,31 +272,20 @@ const CanvasSection: React.FC<CanvasProps> = ({
                       onClick={symbol.type !== "historyIcon" ? handleInsert : undefined}
                     >
                       {symbol.type === "rect" && (
-                        <svg width={80} height={80}>
-                          <rect x={10} y={20} width={60} height={40} fill={symbol.inventory ? "gold" : "#90caf9"} stroke="#333" strokeWidth={2} rx={12} />
-                        </svg>
+                        <RectIcon size="large" />
                       )}
                       {symbol.type === "circle" && (
-                        <svg width={80} height={80}>
-                          <circle cx={40} cy={40} r={28} fill={symbol.inventory ? "gold" : "#a5d6a7"} stroke="#333" strokeWidth={2} />
-                        </svg>
+                        <CircleIcon size="large" />
                       )}
                       {symbol.type === "polygon" && (
-                        <svg width={80} height={80}>
-                          <polygon points="40,10 70,70 10,70" fill={symbol.inventory ? "gold" : "#ffcc80"} stroke="#333" strokeWidth={2} />
-                        </svg>
+                        <PolygonIcon size="large" />
                       )}
                       {symbol.type === "curve" && (
-                        <svg width={80} height={80}>
-                          <path d="M 10 40 Q 40,10 70,40" fill="none" stroke={symbol.inventory ? "gold" : "#ef9a9a"} strokeWidth={3} />
-                        </svg>
+                        <CurveIcon size="large" />
                       )}
                       {symbol.type === "historyIcon" && (
                         <div className="history-icon-container">
-                          <svg width={80} height={80} viewBox="0 0 80 80">
-                            <circle cx="40" cy="40" r="28" fill={symbol.inventory ? "gold" : "#ffe082"} stroke="#333" strokeWidth={2} />
-                            <path d="M40 22 v18 l14 14" stroke="#333" strokeWidth="3" fill="none" />
-                          </svg>
+                          <ClockIcon size="large" />
                           <div className="history-icon-text">
                             Your history appears here
                           </div>
