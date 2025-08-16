@@ -28,16 +28,24 @@
   --chart-5: 27 87% 67%;
   --radius: 0.5rem;
   
-  /* Adobe-specific variables */
-  --adobe-background: #ffffff;
-  --adobe-surface: #f5f5f5;
-  --adobe-border: #e0e0e0;
-  --adobe-text: #2c2c2c;
-  --adobe-text-secondary: #6b6b6b;
-  --adobe-accent: #1473e6;
-  --adobe-accent-hover: #0d66d0;
-  --adobe-shadow: rgba(0, 0, 0, 0.1);
-  --adobe-shadow-hover: rgba(0, 0, 0, 0.15);
+    /* Adobe-specific variables */
+ --adobe-background: #fffef7;
+ --adobe-surface: #faf6e9;
+ --adobe-border: #e6d4a3;
+ --adobe-text: #2c2c2c;
+ --adobe-text-secondary: #6b6b6b;
+ --adobe-accent: #d4af37;
+ --adobe-accent-hover: #b8941f;
+ --adobe-shadow: rgba(212, 175, 55, 0.15);
+ --adobe-shadow-hover: rgba(212, 175, 55, 0.25);
+
+/* Custom Golden Theme Colors for SWC Override */
+--golden-primary: #d4af37;
+--golden-primary-hover: #b8941f;
+--golden-secondary: #f4e4bc;
+--golden-secondary-hover: #e6d4a3;
+--golden-text: #2c2c2c;
+--golden-text-on-primary: #ffffff;
 }
 
 /* Dark Theme */
@@ -68,15 +76,23 @@
   --chart-5: 340 75% 55%;
   
   /* Adobe-specific variables for dark */
-  --adobe-background: #2c2c2c;
-  --adobe-surface: #3a3a3a;
-  --adobe-border: #4a4a4a;
+  --adobe-background: #3a3a3a;
+  --adobe-surface: #4a4a4a;
+  --adobe-border: #5a5a5a;
   --adobe-text: #ffffff;
   --adobe-text-secondary: #b0b0b0;
   --adobe-accent: #4dabf7;
   --adobe-accent-hover: #74c0fc;
   --adobe-shadow: rgba(0, 0, 0, 0.3);
   --adobe-shadow-hover: rgba(0, 0, 0, 0.4);
+  
+  /* Custom Dark Theme Colors for SWC Override */
+  --dark-primary: #4dabf7;
+  --dark-primary-hover: #74c0fc;
+  --dark-secondary: #3a3a3a;
+  --dark-secondary-hover: #4a4a4a;
+  --dark-text: #ffffff;
+  --dark-text-on-primary: #1a1a1a;
 }
 
 /* Acrylic Theme */
@@ -107,15 +123,15 @@
   --chart-5: 340 75% 55%;
   
   /* Adobe-specific variables for acrylic */
-  --adobe-background: rgba(44, 44, 44, 0.8);
-  --adobe-surface: rgba(58, 58, 58, 0.8);
-  --adobe-border: rgba(255, 255, 255, 0.1);
+  --adobe-background: rgba(42, 31, 10, 0.8);
+  --adobe-surface: rgba(61, 46, 20, 0.8);
+  --adobe-border: rgba(212, 175, 55, 0.2);
   --adobe-text: #ffffff;
-  --adobe-text-secondary: #b0b0b0;
-  --adobe-accent: #4dabf7;
-  --adobe-accent-hover: #74c0fc;
-  --adobe-shadow: rgba(0, 0, 0, 0.2);
-  --adobe-shadow-hover: rgba(0, 0, 0, 0.3);
+  --adobe-text-secondary: #f4e4bc;
+  --adobe-accent: #d4af37;
+  --adobe-accent-hover: #b8941f;
+  --adobe-shadow: rgba(212, 175, 55, 0.15);
+  --adobe-shadow-hover: rgba(212, 175, 55, 0.25);
 }
 
 /* Base styles */
@@ -272,15 +288,45 @@ body {
 
 /* Cool Neon Effects */
 .neon-glow {
-  box-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
-  border-radius: 0.5rem;
-  padding: 8px;
   animation: neon-pulse 2s ease-in-out infinite alternate;
 }
 
+/* Light theme neon glow */
+.light .neon-glow {
+  box-shadow: 0 0 5px var(--golden-primary), 0 0 10px var(--golden-primary), 0 0 15px var(--golden-primary);
+}
+
+/* Dark theme neon glow */
+.dark .neon-glow {
+  box-shadow: 0 0 5px var(--dark-primary), 0 0 10px var(--dark-primary), 0 0 15px var(--dark-primary);
+}
+
+/* Acrylic theme neon glow */
+.acrylic .neon-glow {
+  box-shadow: 0 0 5px var(--golden-primary), 0 0 10px var(--golden-primary), 0 0 15px var(--golden-primary);
+}
+
 @keyframes neon-pulse {
-  from { box-shadow: 0 0 2px currentColor, 0 0 4px currentColor, 0 0 3px currentColor; }
-  to { box-shadow: 0 0 2px currentColor, 0 0 5px currentColor, 0 0 7px currentColor; }
+  from { 
+    box-shadow: 0 0 2px var(--golden-primary), 0 0 4px var(--golden-primary), 0 0 3px var(--golden-primary); 
+  }
+  to { 
+    box-shadow: 0 0 2px var(--golden-primary), 0 0 5px var(--golden-primary), 0 0 7px var(--golden-primary); 
+  }
+}
+
+/* Dark theme neon pulse */
+.dark .neon-glow {
+  animation: neon-pulse-dark 2s ease-in-out infinite alternate;
+}
+
+@keyframes neon-pulse-dark {
+  from { 
+    box-shadow: 0 0 2px var(--dark-primary), 0 0 4px var(--dark-primary), 0 0 3px var(--dark-primary); 
+  }
+  to { 
+    box-shadow: 0 0 2px var(--dark-primary), 0 0 5px var(--dark-primary), 0 0 7px var(--dark-primary); 
+  }
 }
 
 /* Floating Animation */
@@ -462,6 +508,75 @@ body {
   40% { transform: translate(2px, 2px); }
   60% { transform: translate(-2px, -2px); }
   80% { transform: translate(-2px, 2px); }
+}
+
+/* SWC Button Overrides for Golden Theme */
+.light sp-button[variant="primary"] {
+  background-color: var(--golden-primary) !important;
+  border-color: var(--golden-primary) !important;
+  color: var(--golden-text-on-primary) !important;
+}
+
+.light sp-button[variant="primary"]:hover {
+  background-color: var(--golden-primary-hover) !important;
+  border-color: var(--golden-primary-hover) !important;
+}
+
+.light sp-button[variant="secondary"] {
+  background-color: var(--golden-secondary) !important;
+  border-color: var(--golden-secondary) !important;
+  color: var(--golden-text) !important;
+}
+
+.light sp-button[variant="secondary"]:hover {
+  background-color: var(--golden-secondary-hover) !important;
+  border-color: var(--golden-secondary-hover) !important;
+}
+
+/* Dark Theme SWC Button Overrides */
+.dark sp-button[variant="primary"] {
+  background-color: var(--dark-primary) !important;
+  border-color: var(--dark-primary) !important;
+  color: var(--dark-text-on-primary) !important;
+}
+
+.dark sp-button[variant="primary"]:hover {
+  background-color: var(--dark-primary-hover) !important;
+  border-color: var(--dark-primary-hover) !important;
+}
+
+.dark sp-button[variant="secondary"] {
+  background-color: var(--dark-secondary) !important;
+  border-color: var(--dark-secondary) !important;
+  color: var(--dark-text) !important;
+}
+
+.dark sp-button[variant="secondary"]:hover {
+  background-color: var(--dark-secondary-hover) !important;
+  border-color: var(--dark-secondary-hover) !important;
+}
+
+/* Acrylic Theme SWC Button Overrides */
+.acrylic sp-button[variant="primary"] {
+  background-color: var(--golden-primary) !important;
+  border-color: var(--golden-primary) !important;
+  color: var(--golden-text-on-primary) !important;
+}
+
+.acrylic sp-button[variant="primary"]:hover {
+  background-color: var(--golden-primary-hover) !important;
+  border-color: var(--golden-primary-hover) !important;
+}
+
+.acrylic sp-button[variant="secondary"] {
+  background-color: var(--golden-secondary) !important;
+  border-color: var(--golden-secondary) !important;
+  color: var(--golden-text) !important;
+}
+
+.acrylic sp-button[variant="secondary"]:hover {
+  background-color: var(--golden-secondary-hover) !important;
+  border-color: var(--golden-secondary-hover) !important;
 }
 
 /* Responsive design */
