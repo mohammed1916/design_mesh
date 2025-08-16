@@ -97,24 +97,58 @@ export async function svgToBlob(
 ): Promise<Blob> {
   try {
     const svgElement = await sourceToSvg(svg);
-    return new Promise((resolve) => {
+    
+    // Get the original SVG dimensions
+    const svgWidth = svgElement.viewBox?.baseVal?.width || 
+                     parseFloat(svgElement.getAttribute('width') || '') || 
+                     width;
+    const svgHeight = svgElement.viewBox?.baseVal?.height || 
+                      parseFloat(svgElement.getAttribute('height') || '') || 
+                      height;
+    
+    // Ensure the SVG has proper dimensions set
+    svgElement.setAttribute('width', svgWidth.toString());
+    svgElement.setAttribute('height', svgHeight.toString());
+    
+    return new Promise((resolve, reject) => {
       const img = new Image();
+      
       img.onload = () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d")!;
-        
-        // Fill with white background for JPEG (doesn't support transparency)
-        if (format === 'jpeg') {
-          ctx.fillStyle = 'white';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d")!;
+          
+          // Fill with white background for JPEG (doesn't support transparency)
+          if (format === 'jpeg') {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+          
+          // Scale and draw the image to fill the entire canvas
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create blob from canvas'));
+            }
+          }, `image/${format}`, quality);
+        } catch (error) {
+          reject(error);
         }
-        
-        ctx.drawImage(img, 0, 0);
-        canvas.toBlob((blob) => resolve(blob!), `image/${format}`, quality);
       };
-      img.src = "data:image/svg+xml;base64," + encodeSvgToBase64(new XMLSerializer().serializeToString(svgElement));
+      
+      img.onerror = () => {
+        reject(new Error('Failed to load SVG image'));
+      };
+      
+      // Create a properly formatted SVG data URL
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      const encodedSvg = encodeSvgToBase64(svgString);
+      img.src = "data:image/svg+xml;base64," + encodedSvg;
     });
   } catch (error) {
     console.error(`SVG to ${format.toUpperCase()} conversion error:`, error);
