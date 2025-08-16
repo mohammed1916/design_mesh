@@ -123,15 +123,15 @@
   --chart-5: 340 75% 55%;
   
   /* Adobe-specific variables for acrylic */
-  --adobe-background: rgba(42, 31, 10, 0.8);
-  --adobe-surface: rgba(61, 46, 20, 0.8);
-  --adobe-border: rgba(212, 175, 55, 0.2);
+  --adobe-background: rgba(236, 48, 154, 0.4);
+  --adobe-surface: rgba(177, 44, 119, 0.4);
+  --adobe-border: rgba(177, 24, 188, 0.343);
   --adobe-text: #ffffff;
-  --adobe-text-secondary: #f4e4bc;
-  --adobe-accent: #d4af37;
-  --adobe-accent-hover: #b8941f;
-  --adobe-shadow: rgba(212, 175, 55, 0.15);
-  --adobe-shadow-hover: rgba(212, 175, 55, 0.25);
+  --adobe-text-secondary: #ac2882;
+  --adobe-accent: #c437d4;
+  --adobe-accent-hover: #b4239c;
+  --adobe-shadow: rgba(138, 19, 86, 0.15);
+  --adobe-shadow-hover: rgba(125, 16, 78, 0.25);
 }
 
 /* Base styles */
