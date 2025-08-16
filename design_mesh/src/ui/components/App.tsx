@@ -9,7 +9,7 @@ import { useSelector, useDispatch } from "react-redux";
 import "./App.css";
 import "../styles/themes.css";
 import 'tippy.js/dist/tippy.css';
-import { ThemeProvider } from "../context/ThemeContext";
+import { ThemeProvider, useTheme } from "../context/ThemeContext";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { ParticleEffect } from "./ParticleEffect";
 import { RootState, store } from "../store/appStore";
@@ -30,6 +30,15 @@ import SvgConversionModal from "./SvgConversionModal";
 import InventoryComponent from "./InventoryComponent"; 
 
 const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
+  return (
+    <ThemeProvider>
+      <AppContent addOnSDKAPI={addOnSDKAPI} sandboxProxy={sandboxProxy} />
+    </ThemeProvider>
+  );
+};
+
+const AppContent = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
+  const { theme } = useTheme();
   const dispatch = useDispatch();
   const appState = useSelector((state: RootState) => state.app);
   const symbols = Array.isArray(appState.symbols) ? appState.symbols : [];
@@ -152,15 +161,15 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
   };
 
   return (
-    <ThemeProvider>
-      <Theme system="express" scale="medium" color="light">
-        {/* Acrylic animated background */}
-        <div
-          className="acrylic-bg-gradient fixed inset-0 -z-100 pointer-events-none select-none"
-          aria-hidden="true"
-        />
-        <ParticleEffect />
-        <div className="adobe-addon-container theme-transition">
+    <Theme system="express" scale="medium" color="light">
+      {/* Acrylic animated background */}
+      <div
+        className="acrylic-bg-gradient fixed inset-0 -z-100 pointer-events-none select-none"
+        aria-hidden="true"
+      />
+      {/* ParticleEffect only for acrylic theme */}
+      {theme === "acrylic" && <ParticleEffect />}
+      <div className="adobe-addon-container theme-transition">
           {/* Header with theme switcher */}
           <div className="header-row acrylic-card-noborderradius">
             <div className="flex items-center justify-center gap-4 flex-1">
@@ -223,7 +232,6 @@ const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxP
           </div>
         </div>
       </Theme>
-    </ThemeProvider>
   );
 };
 
