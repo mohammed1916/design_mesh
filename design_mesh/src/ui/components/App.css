@@ -5,6 +5,7 @@
   display: flex;
   flex-direction: column;
   gap: 40px;
+  transition: all 0.3s ease;
 }
 
 /* Add wiggle animation for selection indicator */
@@ -43,35 +44,235 @@
 /* Header and rows */
 .header-row {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+  background: var(--adobe-background);
+  box-shadow: 0 4px 16px var(--adobe-shadow);
   padding: 32px 40px;
   margin-bottom: 40px;
   gap: 32px;
+  transition: all 0.3s ease;
 }
 
 .shape-row {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+  justify-content: center;
   align-items: center;
 }
 
 .shape-row > div {
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s, background-color 0.3s ease;
   border-radius: 10px;
   cursor: pointer;
-  background: #f7f8fa;
+  background: var(--adobe-surface);
   padding: 8px;
 }
 .shape-row > div:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px var(--adobe-shadow-hover);
   transform: translateY(-2px) scale(1.05);
+  animation: shape-bounce 0.6s ease-out;
+}
+
+@keyframes shape-bounce {
+  0%, 100% { transform: translateY(-2px) scale(1.05); }
+  50% { transform: translateY(-8px) scale(1.1); }
+}
+
+.shape-upload {
+  grid-column: span 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--adobe-accent);
+  color: white;
+  font-size: 12px;
+  cursor: help;
+  border: 1px solid var(--adobe-accent);
+  font-style: italic;
+  transition: all 0.3s ease;
+}
+
+/* SVG Conversion Dialog */
+.svg-conversion-overlay {
+  position: fixed;
+  z-index: 1000;
+  left: 8px;
+  top: 0;
+  margin-right: 8px;
+  height: 100%;
+  background: rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svg-conversion-dialog {
+  background: var(--adobe-background);
+  border-radius: 12px;
+  box-shadow: 0 2px 16px var(--adobe-shadow);
+  padding: 32px;
+  min-width: 200px;
+  text-align: center;
+  margin: 0px 8px;
+  transition: all 0.3s ease;
+}
+
+.svg-conversion-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.svg-conversion-message {
+  margin-bottom: 24px;
+  color: #555;
+}
+
+.svg-conversion-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.conversion-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.conversion-btn.primary {
+  background: var(--adobe-accent);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.conversion-btn.primary:hover {
+  background: var(--adobe-accent-hover);
+}
+
+.conversion-btn.secondary {
+  background: var(--adobe-surface);
+  color: var(--adobe-text);
+  transition: all 0.3s ease;
+}
+
+.conversion-btn.secondary:hover {
+  background: var(--adobe-border);
+}
+
+.conversion-btn.cancel {
+  background: transparent;
+  color: var(--adobe-text);
+  transition: all 0.3s ease;
+}
+
+.conversion-btn.cancel:hover {
+  background: var(--adobe-surface);
 }
 
 /* Inventory panel styles */
+.inventory-edit-row {
+  margin-top: 22px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.inventory-input {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #90caf9;
+  font-size: 16px;
+  min-width: 150px;
+  flex: 1;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  transition: border 0.2s;
+}
+
+.inventory-input:focus {
+  border-color: #1a237e;
+}
+
+.select-inventory-btn-modern {
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  background: #eee;
+  color: #333;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  cursor: pointer;
+}
+
+.select-inventory-btn-modern.selected {
+  background: #1976d2;
+  color: #fff;
+}
+
+.inventory-card-overlay {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  border-radius: 14px;
+  z-index: 1;
+  background: rgba(0,0,0,0);
+}
+
+.inventory-hidden {
+  height: 0;
+  overflow: hidden;
+}
+
+.inventory-button {
+  padding: 6px 12px;
+  background: #e3e3e3;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.inventory-button:hover {
+  background: #d3d3d3;
+}
+
+.inventory-preview {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.inventory-hidden {
+  height: 0;
+  overflow: hidden;
+}
 .inventory-panel {
   background: linear-gradient(90deg, #f7f8fa 80%, #e3eafc 100%);
   border-radius: 18px;
@@ -86,7 +287,8 @@
 .top-controls {
   display: flex;
   gap: 10px;
-  margin-bottom: 18px;
+  margin: 0 8px 18px;
+  justify-content: center;
   align-items: center;
   background: #f8f9fa;
   border-radius: 12px;
@@ -131,6 +333,31 @@
   color: #0d133d;
 }
 
+.inventory-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background-color: var(--adobe-surface);
+  padding: 1rem;
+  font-weight: 500;
+  color: var(--adobe-text);
+  transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  justify-content: flex-start !important;
+  border: 1px solid var(--adobe-border);
+  cursor: pointer;
+  box-shadow: 0 4px -16px var(--adobe-shadow);
+}
+
+.inventory-toggle-btn:hover {
+  background-color: var(--adobe-background);
+  box-shadow: 0 4px 16px var(--adobe-shadow-hover);
+}
+
 .inventory-select {
   border: 1px solid #d1d5db;
   border-radius: 8px;
@@ -145,27 +372,6 @@
 }
 .inventory-select:focus {
   border-color: #90caf9;
-}
-
-.inventory-edit-row {
-  margin-top: 22px;
-  display: flex;
-  gap: 18px;
-  align-items: center;
-}
-
-.inventory-input {
-  padding: 10px 16px;
-  border-radius: 8px;
-  border: 1px solid #90caf9;
-  font-size: 16px;
-  min-width: 240px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-  transition: border 0.2s;
-}
-.inventory-input:focus {
-  border-color: #1a237e;
 }
 
 /* --- Inventory Grid Layout: Efficient & Clean --- */
@@ -187,7 +393,7 @@
   width: 64px;
   height: 64px;
   border: 1.5px solid #e0e3e8;
-  padding: 8px;
+  padding: 4px;
   position: relative;
   background: #f7f8fa;
   border-radius: 14px;
@@ -205,7 +411,7 @@
   border-radius: 14px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   border: 1.5px solid #e0e3e8;
-  padding: 8px;
+  padding: 4px;
   width: 64px;
   height: 64px;
   display: flex;
@@ -296,6 +502,16 @@
     box-shadow: 0 2px 8px rgba(255, 215, 79, 0.15);
     animation: moving-colors 2s linear infinite;
     transition: background 0.2s, color 0.2s;
+}
+
+/* Accordion arrow rotation */
+.accordion-arrow {
+  transition: transform 0.2s ease;
+  transform: rotate(0deg);
+}
+
+.accordion-arrow.open {
+  transform: rotate(90deg);
 }
 
 @keyframes moving-colors {

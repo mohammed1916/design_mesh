@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import "./CanvasSection.css";
+import { RectIcon, CircleIcon, PolygonIcon, CurveIcon, ClockIcon } from "../ShapeIcons";
+import { Button } from "@swc-react/button";
 
 export type SymbolType = {
   uuid: string; // unique per instance on canvas/document
@@ -8,7 +11,7 @@ export type SymbolType = {
   y: number;
   width: number;
   height: number;
-  type: "rect" | "circle" | "polygon" | "image" | "historyIcon";
+  type: "rect" | "circle" | "polygon" | "image" | "historyIcon" | "curve";
   src?: string;
   inventory?: boolean;
 };
@@ -114,9 +117,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
     ) : null
   );
 
-  React.useEffect(() => {
-    console.log("Canvas symbols:", symbols);
-  }, [symbols]);
+  // Debug logging removed to prevent console spam
 
   return (
     <div className="mt-12" style={{ position: "relative" }}>
@@ -193,15 +194,14 @@ const CanvasSection: React.FC<CanvasProps> = ({
         </div>
       )}
       <div className="border border-gray-300 rounded-xl shadow-sm">
-        <button
+        <Button
           onClick={() => setOpen(!open)}
-          className="inline-flex items-center gap-2 rounded-xl bg-gray-100 p-4 font-medium text-gray-700 hover:bg-gray-200 transition-colors w-full"
-          style={{ cursor: "pointer", userSelect: "none" }}
+          className="inventory-toggle-btn"
         >
           {/* <span className="text-xl leading-none">{open ? "🎯" : "🎨"}</span> */}
           <span className="text-xl leading-none">{open ? "▼ " : "▶ "}</span>
           <span>Symbols</span>
-        </button>
+        </Button>
         <AnimatePresence initial={false}>
           {open && (
             <motion.div
@@ -234,13 +234,14 @@ const CanvasSection: React.FC<CanvasProps> = ({
                   rowGap: `${GRID_GAP/2}px`, 
                   background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
                   borderRadius: 16,
-                  padding: 4,
-                  justifyContent: "center",
-                  minHeight: 400,
+                  padding: 12,
+                  justifyContent: "start",
                   boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
                   border: "1.5px solid #e0e7ef",
                   overflow: enableScroll ? "auto" : "visible",
                   maxHeight: enableScroll ? 500 : "none",
+                  minHeight: 300,
+                  alignContent: "start",
                 }}
               >
                 {symbols.map((symbol) => {
@@ -271,46 +272,41 @@ const CanvasSection: React.FC<CanvasProps> = ({
                       onClick={symbol.type !== "historyIcon" ? handleInsert : undefined}
                     >
                       {symbol.type === "rect" && (
-                        <svg width={80} height={80}>
-                          <rect x={10} y={20} width={60} height={40} fill={symbol.inventory ? "gold" : "#90caf9"} stroke="#333" strokeWidth={2} rx={12} />
-                        </svg>
+                        <RectIcon size="large" />
                       )}
                       {symbol.type === "circle" && (
-                        <svg width={80} height={80}>
-                          <circle cx={40} cy={40} r={28} fill={symbol.inventory ? "gold" : "#a5d6a7"} stroke="#333" strokeWidth={2} />
-                        </svg>
+                        <CircleIcon size="large" />
                       )}
                       {symbol.type === "polygon" && (
-                        <svg width={80} height={80}>
-                          <polygon points="40,10 70,70 10,70" fill={symbol.inventory ? "gold" : "#ffcc80"} stroke="#333" strokeWidth={2} />
-                        </svg>
-                        )}
-                        {symbol.type === "historyIcon" && (
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: 80, height: 80, pointerEvents: "none", opacity: 0.7 }}>
-                              <svg width={80} height={80} viewBox="0 0 80 80">
-                                <circle cx="40" cy="40" r="28" fill={symbol.inventory ? "gold" : "#ffe082"} stroke="#333" strokeWidth={2} />
-                                <path d="M40 22 v18 l14 14" stroke="#333" strokeWidth="3" fill="none" />
-                              </svg>
-                              <div style={{ fontSize: 12, color: "#888", textAlign: "center", marginTop: 8 }}>
-                                Your history appears here
-                              </div>
-                            </div>
-                          )}
-                        {symbol.type === "image" && symbol.src && (
-                        <img src={symbol.src} alt="img" style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", border: "1.5px solid #bbb", boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }} />
-                        )}
+                        <PolygonIcon size="large" />
+                      )}
+                      {symbol.type === "curve" && (
+                        <CurveIcon size="large" />
+                      )}
+                      {symbol.type === "historyIcon" && (
+                        <div className="history-icon-container">
+                          <ClockIcon size="large" />
+                          <div className="history-icon-text">
+                            Your history appears here
+                          </div>
+                        </div>
+                      )}
+                      {symbol.type === "image" && symbol.src && (
+                        <img src={symbol.src} alt="img" className="symbol-image" />
+                      )}
 
                       {symbol.type !== "historyIcon" && (
                         <button
-                          style={{ position: "absolute", bottom: 8, right: 12, background: "#fffbe6", color: "#d32f2f", border: "1px solid #d6c585", borderRadius: 8, padding: "2px 10px", fontWeight: 600, fontSize: 14, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+                          type="button"
                           onClick={handleRemove}
                           title="Remove from canvas"
+                          className="remove-inventory-btn-modern"
                         >
                           ×
                         </button>
                       )}
                       {!inInventory && symbol.type !== "historyIcon" && (
-                        <div style={{ position: "absolute", top: 8, right: 12 }}>{renderInventoryStar(symbol)}</div>
+                        <div className="inventory-star-container">{renderInventoryStar(symbol)}</div>
                       )}
                     </div>
                   );
