@@ -12,8 +12,12 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
 import "./App.css";
+import "../styles/themes.css";
 import Tippy from '@tippyjs/react';
-import 'tippy.js/dist/tippy.css'; 
+import 'tippy.js/dist/tippy.css';
+import { ThemeProvider } from "../context/ThemeContext";
+import { ThemeSwitcher } from "./ThemeSwitcher";
+import { ParticleEffect } from "./ParticleEffect"; 
 
 // Default inventory shapes (rect, circle, polygon)
 const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolean })[] = [
@@ -696,8 +700,26 @@ async function svgToPngBlob(svg: string, width: number, height: number): Promise
   };
 
   return (
-    <Theme system="express" scale="medium" color="light">
-      <div className="container">
+    <ThemeProvider>
+      <Theme system="express" scale="medium" color="light">
+        {/* Acrylic animated background */}
+        <div
+          className="acrylic-bg-gradient fixed inset-0 -z-100 pointer-events-none select-none"
+          aria-hidden="true"
+        />
+        <ParticleEffect />
+        <div className="adobe-addon-container theme-transition">
+          {/* Header with theme switcher */}
+          <div className="header-row acrylic-card-noborderradius">
+            <div className="flex items-center justify-center gap-4 flex-1">
+              <h2 className="shimmer floating">Design</h2>
+              <h1 className="shimmer floating">Mesh</h1>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <ThemeSwitcher />
+            </div>
+          </div>
+          <div className="container">
         {svgConversionData && (
           <div className="svg-conversion-overlay">
             <div className="svg-conversion-dialog">
@@ -933,7 +955,9 @@ async function svgToPngBlob(svg: string, width: number, height: number): Promise
           <div ref={inventoryRef} className="inventory-hidden" />
         </div>
       </div>
-    </Theme>
+        </div>
+      </Theme>
+    </ThemeProvider>
   );
 };
 

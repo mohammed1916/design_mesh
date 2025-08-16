@@ -5,6 +5,7 @@
   display: flex;
   flex-direction: column;
   gap: 40px;
+  transition: all 0.3s ease;
 }
 
 /* Add wiggle animation for selection indicator */
@@ -43,14 +44,15 @@
 /* Header and rows */
 .header-row {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  background: #fff;
+  background: var(--adobe-background);
   border-radius: 18px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+  box-shadow: 0 4px 16px var(--adobe-shadow);
   padding: 32px 40px;
   margin-bottom: 40px;
   gap: 32px;
+  transition: all 0.3s ease;
 }
 
 .shape-row {
@@ -63,15 +65,21 @@
 }
 
 .shape-row > div {
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s, background-color 0.3s ease;
   border-radius: 10px;
   cursor: pointer;
-  background: #f7f8fa;
+  background: var(--adobe-surface);
   padding: 8px;
 }
 .shape-row > div:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px var(--adobe-shadow-hover);
   transform: translateY(-2px) scale(1.05);
+  animation: shape-bounce 0.6s ease-out;
+}
+
+@keyframes shape-bounce {
+  0%, 100% { transform: translateY(-2px) scale(1.05); }
+  50% { transform: translateY(-8px) scale(1.1); }
 }
 
 .shape-upload {
@@ -89,12 +97,13 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: #e8f0fe;
-  color: #1976d2;
+  background-color: var(--adobe-accent);
+  color: white;
   font-size: 12px;
   cursor: help;
-  border: 1px solid #1976d2;
+  border: 1px solid var(--adobe-accent);
   font-style: italic;
+  transition: all 0.3s ease;
 }
 
 /* SVG Conversion Dialog */
@@ -112,13 +121,14 @@
 }
 
 .svg-conversion-dialog {
-  background: #fff;
+  background: var(--adobe-background);
   border-radius: 12px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 16px var(--adobe-shadow);
   padding: 32px;
   min-width: 200px;
   text-align: center;
   margin: 0px 8px;
+  transition: all 0.3s ease;
 }
 
 .svg-conversion-title {
@@ -148,30 +158,33 @@
 }
 
 .conversion-btn.primary {
-  background: #1473e6;
+  background: var(--adobe-accent);
   color: white;
+  transition: all 0.3s ease;
 }
 
 .conversion-btn.primary:hover {
-  background: #0d66d0;
+  background: var(--adobe-accent-hover);
 }
 
 .conversion-btn.secondary {
-  background: #e3e3e3;
-  color: #464646;
+  background: var(--adobe-surface);
+  color: var(--adobe-text);
+  transition: all 0.3s ease;
 }
 
 .conversion-btn.secondary:hover {
-  background: #d3d3d3;
+  background: var(--adobe-border);
 }
 
 .conversion-btn.cancel {
   background: transparent;
-  color: #464646;
+  color: var(--adobe-text);
+  transition: all 0.3s ease;
 }
 
 .conversion-btn.cancel:hover {
-  background: #f5f5f5;
+  background: var(--adobe-surface);
 }
 
 /* Inventory panel styles */
