@@ -7,6 +7,7 @@ interface SvgConversionModalProps {
   onParamsChange: (params: SvgConversionParams) => void;
   onConvert: () => void;
   onCancel: () => void;
+  isConverting?: boolean;
 }
 
 const SvgConversionModal: React.FC<SvgConversionModalProps> = ({
@@ -15,6 +16,7 @@ const SvgConversionModal: React.FC<SvgConversionModalProps> = ({
   onParamsChange,
   onConvert,
   onCancel,
+  isConverting = false,
 }) => {
   if (!isOpen) return null;
 
@@ -34,6 +36,7 @@ const SvgConversionModal: React.FC<SvgConversionModalProps> = ({
                 ...params,
                 format: e.target.value as 'png' | 'jpeg'
               })}
+              disabled={isConverting}
             >
               <option value="png">PNG</option>
               <option value="jpeg">JPEG</option>
@@ -48,6 +51,7 @@ const SvgConversionModal: React.FC<SvgConversionModalProps> = ({
                   ...params,
                   maintainAspectRatio: e.target.checked
                 })}
+                disabled={isConverting}
               />
               Maintain Aspect Ratio
             </label>
@@ -55,14 +59,23 @@ const SvgConversionModal: React.FC<SvgConversionModalProps> = ({
         </div>
         <div className="svg-conversion-buttons">
           <button
-            className="conversion-btn primary"
+            className={`conversion-btn primary ${isConverting ? 'loading' : ''}`}
             onClick={onConvert}
+            disabled={isConverting}
           >
-            Convert & Add
+            {isConverting ? (
+              <>
+                <div className="loading-spinner" />
+                Converting...
+              </>
+            ) : (
+              'Convert & Add'
+            )}
           </button>
           <button
             className="conversion-btn cancel"
             onClick={onCancel}
+            disabled={isConverting}
           >
             Cancel
           </button>
