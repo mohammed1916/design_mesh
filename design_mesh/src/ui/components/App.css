@@ -390,7 +390,7 @@
   width: 64px;
   height: 64px;
   border: 1.5px solid #e0e3e8;
-  padding: 8px;
+  padding: 4px;
   position: relative;
   background: #f7f8fa;
   border-radius: 14px;
@@ -408,7 +408,7 @@
   border-radius: 14px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   border: 1.5px solid #e0e3e8;
-  padding: 8px;
+  padding: 4px;
   width: 64px;
   height: 64px;
   display: flex;
