@@ -9,7 +9,8 @@ import { v4 as uuidv4 } from "uuid";
 
 export const useShapeAndUploadLogic = (
   addOnSDKAPI: AddOnSDKAPI,
-  onSvgConversionRequested: (data: { file: File; reader: FileReader; params: SvgConversionParams }) => void
+  onSvgConversionRequested: (data: { file: File; reader: FileReader; params: SvgConversionParams }) => void,
+  sandboxProxy?: any // Add optional sandboxProxy parameter
 ) => {
   const dispatch = useDispatch();
 
@@ -34,9 +35,27 @@ export const useShapeAndUploadLogic = (
 
         // Check if the file is an animated format (GIF)
         if (originalBlob.type === 'image/gif') {
-          await addOnSDKAPI.app.document.addAnimatedImage(blob);
+          if (sandboxProxy && sandboxProxy.createPositionedImage) {
+            try {
+              await sandboxProxy.createPositionedImage(blob, { position: 'center', isAnimated: true });
+            } catch (error) {
+              console.error('Failed to insert animated image with positioning:', error);
+              await addOnSDKAPI.app.document.addAnimatedImage(blob);
+            }
+          } else {
+            await addOnSDKAPI.app.document.addAnimatedImage(blob);
+          }
         } else {
-          await addOnSDKAPI.app.document.addImage(blob);
+          if (sandboxProxy && sandboxProxy.createPositionedImage) {
+            try {
+              await sandboxProxy.createPositionedImage(blob, { position: 'center' });
+            } catch (error) {
+              console.error('Failed to insert image with positioning:', error);
+              await addOnSDKAPI.app.document.addImage(blob);
+            }
+          } else {
+            await addOnSDKAPI.app.document.addImage(blob);
+          }
         }
       } catch (error: any) {
         // Handle maxSupportedSize error from Adobe Express API
@@ -75,9 +94,19 @@ export const useShapeAndUploadLogic = (
       const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}">${svg}</svg>`;
       
       const blob = await svgToBlob(fullSvg, symbol.width, symbol.height, 'png');
-      await addOnSDKAPI.app.document.addImage(blob);
+      
+      if (sandboxProxy && sandboxProxy.createPositionedImage) {
+        try {
+          await sandboxProxy.createPositionedImage(blob, { position: 'center' });
+        } catch (error) {
+          console.error('Failed to insert shape with positioning:', error);
+          await addOnSDKAPI.app.document.addImage(blob);
+        }
+      } else {
+        await addOnSDKAPI.app.document.addImage(blob);
+      }
     }
-  }, [addOnSDKAPI, dispatch]);
+  }, [addOnSDKAPI, dispatch, sandboxProxy]);
 
   // Insert new shape (rect/circle/polygon) with unique uuid and inventoryId
   const handleInsertShape = useCallback(async (type: "rect" | "circle" | "polygon" | "curve") => {

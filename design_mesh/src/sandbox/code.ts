@@ -65,6 +65,54 @@ function start(): void {
             info.text = "History";
             info.translation = { x: 70, y: 30 };
             insertionParent.children.append(info);
+        },
+
+        createPositionedImage: async (imageBlob: Blob, options = {}) => {
+            const insertionParent = editor.context.insertionParent;
+            
+            // Get the current page dimensions to calculate center position  
+            // Access the page through the document root
+            const documentRoot = editor.documentRoot;
+            const currentPageIndex = documentRoot.pages.length > 0 ? 0 : 0; // Get first page or current
+            const currentPage = documentRoot.pages[currentPageIndex];
+            const pageWidth = currentPage?.width || 800; // Fallback values
+            const pageHeight = currentPage?.height || 600;
+            
+            // Destructure options with defaults
+            const { width, height, position = 'center', isAnimated = false } = options;
+            
+            // Load the bitmap image (this handles both static and animated images)
+            const bitmapImage = await editor.loadBitmapImage(imageBlob);
+            
+            // Queue the async operation
+            await editor.queueAsyncEdit(() => {
+                // Determine image size
+                const imageWidth = width || bitmapImage.width;
+                const imageHeight = height || bitmapImage.height;
+                
+                // Create image container with initial size
+                const mediaContainerNode = editor.createImageContainer(bitmapImage, { 
+                    initialSize: { width: imageWidth, height: imageHeight } 
+                });
+                
+                // Position based on the position option
+                if (position === 'center') {
+                    // Position the image in the center of the page
+                    const centerX = (pageWidth/4 - imageWidth);
+                    const centerY = (pageHeight/4 - imageHeight) ;
+                    
+                    mediaContainerNode.translation = { 
+                        x: Math.max(0, centerX), 
+                        y: Math.max(0, centerY) 
+                    };
+                } else {
+                    // Default to top-left for now, could be extended later
+                    mediaContainerNode.translation = { x: 0, y: 0 };
+                }
+                
+                // Add to document
+                insertionParent.children.append(mediaContainerNode);
+            });
         }
 
     };

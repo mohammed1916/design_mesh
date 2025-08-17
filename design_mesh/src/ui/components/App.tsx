@@ -75,7 +75,7 @@ const AppContent = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; s
     handleUpload,
     handleSvgConversion,
     insertSymbolToDocument,
-  } = useShapeAndUploadLogic(addOnSDKAPI, setSvgConversionData);
+  } = useShapeAndUploadLogic(addOnSDKAPI, setSvgConversionData, sandboxProxy);
 
   // Helper: get inventoryId from uuid
   const getInventoryIdByUuid = (uuid: string) => {
