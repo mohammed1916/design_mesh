@@ -322,3 +322,53 @@
 .canvas-preview {
   cursor: default;
 }
+
+/* Node controls */
+.node-info {
+  padding: 12px;
+  background: var(--adobe-surface, #f8f9fa);
+  border-radius: 6px;
+  border: 1px solid var(--adobe-border, #e0e0e0);
+  margin-bottom: 12px;
+}
+
+.node-info p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--adobe-text, #333333);
+}
+
+.node-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.node-controls button {
+  padding: 6px 12px;
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.node-controls button:hover:not(:disabled) {
+  background: #cc0000;
+}
+
+.node-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.node-instructions {
+  padding: 12px;
+  background: var(--adobe-background, #ffffff);
+  border-radius: 6px;
+  border: 1px solid var(--adobe-border, #e0e0e0);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--adobe-text-secondary, #666666);
+}

@@ -26,11 +26,13 @@ const ShapeEditor: React.FC<ShapeEditorProps> = ({
 
   const handleShapeChange = (updatedShape: SymbolType) => {
     // Ensure we preserve all properties, including extended ones
+    console.log('ShapeEditor: Updating shape, curveData:', (updatedShape as any).curveData);
     setCurrentShape(prev => ({ ...prev, ...updatedShape }));
     setHasUnsavedChanges(true);
   };
 
   const handleSave = () => {
+    console.log('ShapeEditor: Saving shape, curveData:', (currentShape as any).curveData);
     onShapeUpdate(currentShape);
     setHasUnsavedChanges(false);
   };

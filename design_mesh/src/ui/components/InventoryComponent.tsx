@@ -115,7 +115,12 @@ const InventoryComponent: React.FC<InventoryProps> = ({
                     ) : inv.type === "polygon" ? (
                       <PolygonIcon size="small" />
                     ) : inv.type === "curve" ? (
-                      <CurveIcon size="small" />
+                      <CurveIcon 
+                        size="small" 
+                        stroke={(inv as any).stroke}
+                        strokeWidth={(inv as any).strokeWidth}
+                        curveData={(inv as any).curveData}
+                      />
                     ) : inv.type === "image" && inv.src ? (
                       <img src={inv.src} width={30} height={30} alt="Inventory" />
                     ) : null}

@@ -91,26 +91,96 @@ export const useShapeAndUploadLogic = (
         // Get curve data from symbol's extended properties
         const curveData = symbolWithExtended.curveData;
         console.log('Curve generation - curveData:', curveData);
+        
         if (curveData) {
-          // Calculate the bounding box to get the offset
-          const allPoints = [curveData.start, curveData.cp1, curveData.cp2, curveData.end];
-          const minX = Math.min(...allPoints.map(p => p.x));
-          const minY = Math.min(...allPoints.map(p => p.y));
+          let pathData = '';
           
-          // Get padding from symbol bounds (should match the BezierEditor padding)
-          const padding = Math.max(strokeWidth * 2, 10);
+          // Check if it's new multi-node format or legacy single curve format
+          if ('nodes' in curveData && Array.isArray(curveData.nodes)) {
+            // New multi-node BezierPath format
+            const path = curveData as any; // BezierPath type
+            
+            if (path.nodes.length >= 2) {
+              // Calculate the bounding box to get the offset
+              const allPoints: any[] = [];
+              path.nodes.forEach((node: any) => {
+                allPoints.push(node.point);
+                if (node.leftHandle) allPoints.push(node.leftHandle);
+                if (node.rightHandle) allPoints.push(node.rightHandle);
+              });
+              
+              const minX = Math.min(...allPoints.map(p => p.x));
+              const minY = Math.min(...allPoints.map(p => p.y));
+              
+              // Get padding from symbol bounds
+              const padding = Math.max(strokeWidth * 2, 10);
+              
+              // Start path at first node
+              const firstNode = path.nodes[0];
+              const adjustedFirstPoint = { 
+                x: firstNode.point.x - minX + padding, 
+                y: firstNode.point.y - minY + padding 
+              };
+              pathData = `M ${adjustedFirstPoint.x},${adjustedFirstPoint.y}`;
+              
+              // Add curve segments between adjacent nodes
+              for (let i = 0; i < path.nodes.length - 1; i++) {
+                const currentNode = path.nodes[i];
+                const nextNode = path.nodes[i + 1];
+                
+                const cp1 = currentNode.rightHandle || currentNode.point;
+                const cp2 = nextNode.leftHandle || nextNode.point;
+                
+                const adjustedCp1 = { x: cp1.x - minX + padding, y: cp1.y - minY + padding };
+                const adjustedCp2 = { x: cp2.x - minX + padding, y: cp2.y - minY + padding };
+                const adjustedNextPoint = { x: nextNode.point.x - minX + padding, y: nextNode.point.y - minY + padding };
+                
+                pathData += ` C ${adjustedCp1.x},${adjustedCp1.y} ${adjustedCp2.x},${adjustedCp2.y} ${adjustedNextPoint.x},${adjustedNextPoint.y}`;
+              }
+              
+              // Close path if needed
+              if (path.closed && path.nodes.length > 2) {
+                const lastNode = path.nodes[path.nodes.length - 1];
+                const firstNode = path.nodes[0];
+                
+                const cp1 = lastNode.rightHandle || lastNode.point;
+                const cp2 = firstNode.leftHandle || firstNode.point;
+                
+                const adjustedCp1 = { x: cp1.x - minX + padding, y: cp1.y - minY + padding };
+                const adjustedCp2 = { x: cp2.x - minX + padding, y: cp2.y - minY + padding };
+                const adjustedFirstPoint = { x: firstNode.point.x - minX + padding, y: firstNode.point.y - minY + padding };
+                
+                pathData += ` C ${adjustedCp1.x},${adjustedCp1.y} ${adjustedCp2.x},${adjustedCp2.y} ${adjustedFirstPoint.x},${adjustedFirstPoint.y} Z`;
+              }
+            }
+          } else {
+            // Legacy single curve format - convert to path data
+            const legacyCurve = curveData as any; // BezierCurve type
+            const allPoints = [legacyCurve.start, legacyCurve.cp1, legacyCurve.cp2, legacyCurve.end];
+            const minX = Math.min(...allPoints.map(p => p.x));
+            const minY = Math.min(...allPoints.map(p => p.y));
+            
+            // Get padding from symbol bounds
+            const padding = Math.max(strokeWidth * 2, 10);
+            
+            // Adjust coordinates to be relative to the SVG's origin
+            const adjustedStart = { x: legacyCurve.start.x - minX + padding, y: legacyCurve.start.y - minY + padding };
+            const adjustedCp1 = { x: legacyCurve.cp1.x - minX + padding, y: legacyCurve.cp1.y - minY + padding };
+            const adjustedCp2 = { x: legacyCurve.cp2.x - minX + padding, y: legacyCurve.cp2.y - minY + padding };
+            const adjustedEnd = { x: legacyCurve.end.x - minX + padding, y: legacyCurve.end.y - minY + padding };
+            
+            pathData = `M ${adjustedStart.x},${adjustedStart.y} C ${adjustedCp1.x},${adjustedCp1.y} ${adjustedCp2.x},${adjustedCp2.y} ${adjustedEnd.x},${adjustedEnd.y}`;
+          }
           
-          // Adjust coordinates to be relative to the SVG's origin (accounting for padding)
-          const adjustedStart = { x: curveData.start.x - minX + padding, y: curveData.start.y - minY + padding };
-          const adjustedCp1 = { x: curveData.cp1.x - minX + padding, y: curveData.cp1.y - minY + padding };
-          const adjustedCp2 = { x: curveData.cp2.x - minX + padding, y: curveData.cp2.y - minY + padding };
-          const adjustedEnd = { x: curveData.end.x - minX + padding, y: curveData.end.y - minY + padding };
-          
-          // Generate Bezier curve path using adjusted coordinates
-          const pathData = `M ${adjustedStart.x},${adjustedStart.y} C ${adjustedCp1.x},${adjustedCp1.y} ${adjustedCp2.x},${adjustedCp2.y} ${adjustedEnd.x},${adjustedEnd.y}`;
           console.log('Generated path:', pathData);
           console.log('SVG dimensions:', symbol.width, 'x', symbol.height);
-          svg = `<path d="${pathData}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="${symbolWithExtended.lineCap || 'round'}" />`;
+          
+          if (pathData) {
+            svg = `<path d="${pathData}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="${symbolWithExtended.lineCap || 'round'}" />`;
+          } else {
+            // Fallback if path generation failed
+            svg = `<path d="M10,50 Q50,10 90,50" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+          }
         } else {
           console.log('No curveData found, using fallback');
           // Fallback to default curve if no curve data

@@ -1,16 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SymbolType } from '../../res/CanvasSection';
+import { SHAPE_COLORS } from '../../../constants/inventory';
 
 interface ControlPoint {
   x: number;
   y: number;
 }
 
+// Legacy single curve structure for backward compatibility
 interface BezierCurve {
   start: ControlPoint;
   cp1: ControlPoint;
   cp2: ControlPoint;
   end: ControlPoint;
+}
+
+// New multi-node path structure
+interface BezierNode {
+  point: ControlPoint;
+  leftHandle?: ControlPoint;  // Control point for incoming curve
+  rightHandle?: ControlPoint; // Control point for outgoing curve
+  type: 'corner' | 'smooth' | 'symmetric';
+  selected?: boolean;
+}
+
+interface BezierPath {
+  nodes: BezierNode[];
+  closed: boolean;
+}
+
+interface DragState {
+  nodeIndex: number;
+  handleType: 'point' | 'leftHandle' | 'rightHandle';
 }
 
 interface BezierEditorProps {
@@ -19,28 +40,86 @@ interface BezierEditorProps {
 }
 
 const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
-  // Initialize curve data from existing shape or use defaults
-  const initialCurve = (shape as any).curveData || {
-    start: { x: 100, y: 250 },
-    cp1: { x: 200, y: 100 },
-    cp2: { x: 400, y: 350 },
-    end: { x: 500, y: 250 },
+  // Helper function to convert legacy BezierCurve to new BezierPath format
+  const migrateLegacyCurve = (curve: BezierCurve): BezierPath => {
+    return {
+      nodes: [
+        {
+          point: curve.start,
+          rightHandle: curve.cp1,
+          type: 'corner' as const,
+          selected: false
+        },
+        {
+          point: curve.end,
+          leftHandle: curve.cp2,
+          type: 'corner' as const,
+          selected: false
+        }
+      ],
+      closed: false
+    };
   };
 
-  const [curve, setCurve] = useState<BezierCurve>(initialCurve);
+  // Helper function to create default path
+  const createDefaultPath = (): BezierPath => {
+    return {
+      nodes: [
+        {
+          point: { x: 100, y: 250 },
+          rightHandle: { x: 200, y: 100 },
+          type: 'corner' as const,
+          selected: false
+        },
+        {
+          point: { x: 500, y: 250 },
+          leftHandle: { x: 400, y: 350 },
+          type: 'corner' as const,
+          selected: false
+        }
+      ],
+      closed: false
+    };
+  };
+
+  // Initialize path data from existing shape or use defaults
+  const initializePath = (): BezierPath => {
+    const shapeData = (shape as any).curveData;
+    console.log('BezierEditor_new: Initializing path with shapeData:', shapeData);
+    
+    if (!shapeData) {
+      console.log('BezierEditor_new: No curve data found, creating default path');
+      return createDefaultPath();
+    }
+    
+    // Check if it's new format (has 'nodes' property) or legacy format
+    if ('nodes' in shapeData) {
+      console.log('BezierEditor_new: Found multi-node path with', shapeData.nodes.length, 'nodes');
+      return shapeData as BezierPath;
+    } else {
+      console.log('BezierEditor_new: Found legacy curve, migrating to multi-node format');
+      // Legacy format - convert to new format
+      return migrateLegacyCurve(shapeData as BezierCurve);
+    }
+  };
+
+  const [path, setPath] = useState<BezierPath>(initializePath());
 
   // Initialize curve properties from existing shape or use defaults
   const initialProps = {
-    stroke: (shape as any).stroke || '#ef9a9a',
+    stroke: (shape as any).stroke || SHAPE_COLORS.CURVE,
     strokeWidth: (shape as any).strokeWidth || 3,
     lineCap: (shape as any).lineCap || 'round' as const,
   };
+  
+  console.log('BezierEditor_new: Initializing with colors - existing stroke:', (shape as any).stroke, ', using:', initialProps.stroke);
 
   const [curveProps, setCurveProps] = useState(initialProps);
 
-  // Add drag state
+  // Add drag state for multi-node system
   const [isDragging, setIsDragging] = useState(false);
-  const [dragPoint, setDragPoint] = useState<keyof BezierCurve | null>(null);
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const [selectedNodeIndex, setSelectedNodeIndex] = useState<number | null>(null);
   
   // Add zoom state
   const [zoom, setZoom] = useState(1);
@@ -52,11 +131,19 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
 
   useEffect(() => {
     drawBezier();
-  }, [curve, curveProps, zoom, panOffset]);
+  }, [path, curveProps, zoom, panOffset]);
 
   useEffect(() => {
-    // Calculate curve path and update shape bounds - but keep original curve coordinates
-    const allPoints = [curve.start, curve.cp1, curve.cp2, curve.end];
+    // Calculate path bounds from all nodes and handles
+    const allPoints: ControlPoint[] = [];
+    path.nodes.forEach(node => {
+      allPoints.push(node.point);
+      if (node.leftHandle) allPoints.push(node.leftHandle);
+      if (node.rightHandle) allPoints.push(node.rightHandle);
+    });
+
+    if (allPoints.length === 0) return;
+
     const minX = Math.min(...allPoints.map(p => p.x));
     const minY = Math.min(...allPoints.map(p => p.y));
     const maxX = Math.max(...allPoints.map(p => p.x));
@@ -71,16 +158,17 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
       y: minY - padding,
       width: (maxX - minX) + (padding * 2),
       height: (maxY - minY) + (padding * 2),
-      // Store curve data and styling as extended properties (preserve original coordinates)
+      // Store path data and styling as extended properties (preserve original coordinates)
       ...(shape as any),
-      curveData: curve,
+      curveData: path,
       stroke: curveProps.stroke,
       strokeWidth: curveProps.strokeWidth,
       lineCap: curveProps.lineCap
     };
 
+    console.log('BezierEditor_new: Saving curve with', path.nodes.length, 'nodes:', path);
     onChange(updatedShape);
-  }, [curve, curveProps]);
+  }, [path, curveProps]);
 
   const drawBezier = () => {
     const canvas = canvasRef.current;
@@ -97,53 +185,110 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
     ctx.translate(panOffset.x, panOffset.y);
     ctx.scale(zoom, zoom);
 
-    // Draw bezier curve
-    ctx.strokeStyle = curveProps.stroke;
-    ctx.lineWidth = curveProps.strokeWidth;
-    ctx.lineCap = curveProps.lineCap;
+    // Draw bezier path with multiple segments
+    if (path.nodes.length >= 2) {
+      ctx.strokeStyle = curveProps.stroke;
+      ctx.lineWidth = curveProps.strokeWidth;
+      ctx.lineCap = curveProps.lineCap;
 
-    ctx.beginPath();
-    ctx.moveTo(curve.start.x, curve.start.y);
-    ctx.bezierCurveTo(
-      curve.cp1.x, curve.cp1.y,
-      curve.cp2.x, curve.cp2.y,
-      curve.end.x, curve.end.y
-    );
-    ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(path.nodes[0].point.x, path.nodes[0].point.y);
+      
+      // Draw segments between adjacent nodes
+      for (let i = 0; i < path.nodes.length - 1; i++) {
+        const currentNode = path.nodes[i];
+        const nextNode = path.nodes[i + 1];
+        
+        const cp1 = currentNode.rightHandle || currentNode.point;
+        const cp2 = nextNode.leftHandle || nextNode.point;
+        
+        ctx.bezierCurveTo(
+          cp1.x, cp1.y,
+          cp2.x, cp2.y,
+          nextNode.point.x, nextNode.point.y
+        );
+      }
+      
+      // If path is closed, connect back to start
+      if (path.closed && path.nodes.length > 2) {
+        const lastNode = path.nodes[path.nodes.length - 1];
+        const firstNode = path.nodes[0];
+        
+        const cp1 = lastNode.rightHandle || lastNode.point;
+        const cp2 = firstNode.leftHandle || firstNode.point;
+        
+        ctx.bezierCurveTo(
+          cp1.x, cp1.y,
+          cp2.x, cp2.y,
+          firstNode.point.x, firstNode.point.y
+        );
+      }
+      
+      ctx.stroke();
+    }
 
-    // Draw control lines
+    // Draw control lines for selected nodes only
     ctx.strokeStyle = '#ccc';
     ctx.lineWidth = 1;
     ctx.setLineDash([5, 5]);
     
-    ctx.beginPath();
-    ctx.moveTo(curve.start.x, curve.start.y);
-    ctx.lineTo(curve.cp1.x, curve.cp1.y);
-    ctx.stroke();
-    
-    ctx.beginPath();
-    ctx.moveTo(curve.cp2.x, curve.cp2.y);
-    ctx.lineTo(curve.end.x, curve.end.y);
-    ctx.stroke();
+    path.nodes.forEach((node, index) => {
+      if (node.selected || selectedNodeIndex === index) {
+        // Draw left handle line
+        if (node.leftHandle) {
+          ctx.beginPath();
+          ctx.moveTo(node.point.x, node.point.y);
+          ctx.lineTo(node.leftHandle.x, node.leftHandle.y);
+          ctx.stroke();
+        }
+        
+        // Draw right handle line
+        if (node.rightHandle) {
+          ctx.beginPath();
+          ctx.moveTo(node.point.x, node.point.y);
+          ctx.lineTo(node.rightHandle.x, node.rightHandle.y);
+          ctx.stroke();
+        }
+      }
+    });
     
     ctx.setLineDash([]);
 
-    // Draw control points
-    const points = [
-      { point: curve.start, color: '#4444ff', radius: 6 },
-      { point: curve.cp1, color: '#44ff44', radius: 5 },
-      { point: curve.cp2, color: '#44ff44', radius: 5 },
-      { point: curve.end, color: '#4444ff', radius: 6 },
-    ];
-
-    points.forEach(({ point, color, radius }) => {
+    // Draw all node points and handles
+    path.nodes.forEach((node, index) => {
+      // Draw node point
       ctx.beginPath();
-      ctx.arc(point.x, point.y, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = color;
+      ctx.arc(node.point.x, node.point.y, 6, 0, 2 * Math.PI);
+      ctx.fillStyle = (node.selected || selectedNodeIndex === index) ? '#ff4444' : '#4444ff';
       ctx.fill();
       ctx.strokeStyle = '#fff';
       ctx.lineWidth = 2;
       ctx.stroke();
+      
+      // Draw handles for selected nodes
+      if (node.selected || selectedNodeIndex === index) {
+        // Draw left handle
+        if (node.leftHandle) {
+          ctx.beginPath();
+          ctx.arc(node.leftHandle.x, node.leftHandle.y, 4, 0, 2 * Math.PI);
+          ctx.fillStyle = '#44ff44';
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        
+        // Draw right handle
+        if (node.rightHandle) {
+          ctx.beginPath();
+          ctx.arc(node.rightHandle.x, node.rightHandle.y, 4, 0, 2 * Math.PI);
+          ctx.fillStyle = '#44ff44';
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
     });
     
     // Restore context
@@ -195,7 +340,7 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
     setPanOffset(newPanOffset);
   };
 
-  // Mouse event handlers
+  // Mouse event handlers with multi-node support
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -212,17 +357,45 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
 
     const mousePos = getMousePos(canvas, e);
     
-    // Check which point is being clicked
-    const pointKeys: (keyof BezierCurve)[] = ['start', 'cp1', 'cp2', 'end'];
+    // Check for double-click to add node
+    if (e.detail === 2) {
+      handleAddNode(mousePos);
+      return;
+    }
     
-    for (const pointKey of pointKeys) {
-      if (isNearPoint(mousePos, curve[pointKey])) {
+    // Check for interactions with existing nodes and handles
+    for (let nodeIndex = 0; nodeIndex < path.nodes.length; nodeIndex++) {
+      const node = path.nodes[nodeIndex];
+      
+      // Check node point
+      if (isNearPoint(mousePos, node.point)) {
         setIsDragging(true);
-        setDragPoint(pointKey);
+        setDragState({ nodeIndex, handleType: 'point' });
+        setSelectedNodeIndex(nodeIndex);
         canvas.style.cursor = 'grabbing';
-        break;
+        return;
+      }
+      
+      // Check handles for selected nodes
+      if (selectedNodeIndex === nodeIndex || node.selected) {
+        if (node.leftHandle && isNearPoint(mousePos, node.leftHandle, 8)) {
+          setIsDragging(true);
+          setDragState({ nodeIndex, handleType: 'leftHandle' });
+          canvas.style.cursor = 'grabbing';
+          return;
+        }
+        
+        if (node.rightHandle && isNearPoint(mousePos, node.rightHandle, 8)) {
+          setIsDragging(true);
+          setDragState({ nodeIndex, handleType: 'rightHandle' });
+          canvas.style.cursor = 'grabbing';
+          return;
+        }
       }
     }
+    
+    // If no interaction found, deselect all nodes
+    setSelectedNodeIndex(null);
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -245,31 +418,64 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
 
     const mousePos = getMousePos(canvas, e);
 
-    if (isDragging && dragPoint) {
-      // Update the dragged point position
-      setCurve(prev => ({
-        ...prev,
-        [dragPoint]: mousePos,
-      }));
+    if (isDragging && dragState) {
+      // Update the dragged element position
+      setPath(prev => {
+        const newPath = { ...prev };
+        const nodeIndex = dragState.nodeIndex;
+        
+        // Create a new nodes array with the updated node
+        newPath.nodes = [...prev.nodes];
+        
+        if (dragState.handleType === 'point') {
+          newPath.nodes[nodeIndex] = {
+            ...prev.nodes[nodeIndex],
+            point: mousePos
+          };
+        } else if (dragState.handleType === 'leftHandle') {
+          newPath.nodes[nodeIndex] = {
+            ...prev.nodes[nodeIndex],
+            leftHandle: mousePos
+          };
+        } else if (dragState.handleType === 'rightHandle') {
+          newPath.nodes[nodeIndex] = {
+            ...prev.nodes[nodeIndex],
+            rightHandle: mousePos
+          };
+        }
+        
+        return newPath;
+      });
     } else {
-      // Change cursor when hovering over points
-      const pointKeys: (keyof BezierCurve)[] = ['start', 'cp1', 'cp2', 'end'];
-      let isOverPoint = false;
+      // Change cursor when hovering over interactive elements
+      let isOverInteractive = false;
       
-      for (const pointKey of pointKeys) {
-        if (isNearPoint(mousePos, curve[pointKey])) {
-          isOverPoint = true;
+      for (let nodeIndex = 0; nodeIndex < path.nodes.length; nodeIndex++) {
+        const node = path.nodes[nodeIndex];
+        
+        // Check node point
+        if (isNearPoint(mousePos, node.point)) {
+          isOverInteractive = true;
           break;
+        }
+        
+        // Check handles for selected nodes
+        if (selectedNodeIndex === nodeIndex || node.selected) {
+          if ((node.leftHandle && isNearPoint(mousePos, node.leftHandle, 8)) ||
+              (node.rightHandle && isNearPoint(mousePos, node.rightHandle, 8))) {
+            isOverInteractive = true;
+            break;
+          }
         }
       }
       
-      canvas.style.cursor = isOverPoint ? 'grab' : 'default';
+      canvas.style.cursor = isOverInteractive ? 'grab' : 'default';
     }
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
-    setDragPoint(null);
+    setDragState(null);
     setIsPanning(false);
     setLastPanPoint(null);
     const canvas = canvasRef.current;
@@ -280,7 +486,7 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
 
   const handleMouseLeave = () => {
     setIsDragging(false);
-    setDragPoint(null);
+    setDragState(null);
     setIsPanning(false);
     setLastPanPoint(null);
     const canvas = canvasRef.current;
@@ -289,52 +495,162 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
     }
   };
 
-  const handlePointChange = (pointType: keyof BezierCurve, newPoint: ControlPoint) => {
-    setCurve(prev => ({
-      ...prev,
-      [pointType]: newPoint,
-    }));
+  // Node management functions
+  const handleAddNode = (mousePos: ControlPoint) => {
+    // Find the closest curve segment to add node
+    let closestSegment = -1;
+    let closestDistance = Infinity;
+    let closestT = 0;
+    
+    for (let i = 0; i < path.nodes.length - 1; i++) {
+      const currentNode = path.nodes[i];
+      const nextNode = path.nodes[i + 1];
+      
+      const cp1 = currentNode.rightHandle || currentNode.point;
+      const cp2 = nextNode.leftHandle || nextNode.point;
+      
+      // Sample points along the curve to find closest
+      for (let t = 0; t <= 1; t += 0.05) {
+        const point = calculateBezierPoint(
+          currentNode.point, cp1, cp2, nextNode.point, t
+        );
+        const distance = Math.sqrt(
+          (point.x - mousePos.x) ** 2 + (point.y - mousePos.y) ** 2
+        );
+        
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestSegment = i;
+          closestT = t;
+        }
+      }
+    }
+    
+    if (closestSegment >= 0 && closestDistance < 20 / zoom) {
+      // Split the curve at the closest point
+      const currentNode = path.nodes[closestSegment];
+      const nextNode = path.nodes[closestSegment + 1];
+      
+      const cp1 = currentNode.rightHandle || currentNode.point;
+      const cp2 = nextNode.leftHandle || nextNode.point;
+      
+      const newPoint = calculateBezierPoint(
+        currentNode.point, cp1, cp2, nextNode.point, closestT
+      );
+      
+      // Calculate new handles for smooth transition
+      const newLeftHandle = {
+        x: newPoint.x - (cp1.x - newPoint.x) * 0.3,
+        y: newPoint.y - (cp1.y - newPoint.y) * 0.3,
+      };
+      
+      const newRightHandle = {
+        x: newPoint.x + (cp2.x - newPoint.x) * 0.3,
+        y: newPoint.y + (cp2.y - newPoint.y) * 0.3,
+      };
+      
+      const newNode: BezierNode = {
+        point: newPoint,
+        leftHandle: newLeftHandle,
+        rightHandle: newRightHandle,
+        type: 'smooth',
+        selected: false,
+      };
+      
+      setPath(prev => {
+        const newNodes = [...prev.nodes];
+        newNodes.splice(closestSegment + 1, 0, newNode);
+        return { ...prev, nodes: newNodes };
+      });
+      
+      setSelectedNodeIndex(closestSegment + 1);
+    }
   };
 
-  const handleInputChange = (pointType: keyof BezierCurve, axis: 'x' | 'y', value: number) => {
-    const newPoint = { ...curve[pointType], [axis]: value };
-    handlePointChange(pointType, newPoint);
+  const handleDeleteSelectedNode = () => {
+    if (selectedNodeIndex !== null && path.nodes.length > 2) {
+      setPath(prev => {
+        const newNodes = prev.nodes.filter((_, index) => index !== selectedNodeIndex);
+        return { ...prev, nodes: newNodes };
+      });
+      setSelectedNodeIndex(null);
+    }
   };
+
+  // Bezier curve calculation helper
+  const calculateBezierPoint = (
+    p0: ControlPoint, p1: ControlPoint, p2: ControlPoint, p3: ControlPoint, t: number
+  ): ControlPoint => {
+    const u = 1 - t;
+    const tt = t * t;
+    const uu = u * u;
+    const uuu = uu * u;
+    const ttt = tt * t;
+    
+    return {
+      x: uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
+      y: uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y,
+    };
+  };
+
+  // Keyboard event handler
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      handleDeleteSelectedNode();
+    } else if (e.key === 'Escape') {
+      setSelectedNodeIndex(null);
+    }
+  };
+
+  // Add keyboard event listener
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedNodeIndex, path]);
 
   const handleColorChange = (property: string, value: string) => {
     setCurveProps(prev => ({ ...prev, [property]: value }));
   };
 
   const resetCurve = () => {
-    setCurve({
-      start: { x: 100, y: 250 },
-      cp1: { x: 200, y: 100 },
-      cp2: { x: 400, y: 350 },
-      end: { x: 500, y: 250 },
-    });
+    setPath(createDefaultPath());
+    setSelectedNodeIndex(null);
   };
 
   const createSmoothCurve = () => {
-    setCurve({
-      start: { x: 100, y: 225 },
-      cp1: { x: 250, y: 175 },
-      cp2: { x: 350, y: 275 },
-      end: { x: 500, y: 225 },
+    setPath({
+      nodes: [
+        {
+          point: { x: 150, y: 225 },
+          rightHandle: { x: 250, y: 175 },
+          type: 'smooth' as const,
+          selected: false
+        },
+        {
+          point: { x: 350, y: 275 },
+          leftHandle: { x: 250, y: 225 },
+          rightHandle: { x: 450, y: 325 },
+          type: 'smooth' as const,
+          selected: false
+        },
+        {
+          point: { x: 450, y: 225 },
+          leftHandle: { x: 400, y: 175 },
+          type: 'smooth' as const,
+          selected: false
+        }
+      ],
+      closed: false
     });
-  };
-
-  const pointTypes: Array<keyof BezierCurve> = ['start', 'cp1', 'cp2', 'end'];
-  const pointLabels = {
-    start: 'Start',
-    cp1: 'Control 1',
-    cp2: 'Control 2',
-    end: 'End'
+    setSelectedNodeIndex(null);
   };
 
   return (
     <div className="bezier-editor">
       <div className="editor-section">
-        <h4>Bezier Curve Properties</h4>
+        <h4>Bezier Path Properties</h4>
         
         <div className="editor-controls">
           <div className="control-group">
@@ -388,31 +704,31 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
       </div>
 
       <div className="editor-section">
-        <h4>Control Points</h4>
-        <div className="point-controls">
-          {pointTypes.map((pointType) => (
-            <div key={pointType} className="point-item">
-              <span>{pointLabels[pointType]}:</span>
-              <label>
-                X:
-                <input
-                  type="number"
-                  value={Math.round(curve[pointType].x)}
-                  onChange={(e) => handleInputChange(pointType, 'x', parseFloat(e.target.value) || 0)}
-                  title={`${pointLabels[pointType]} X coordinate`}
-                />
-              </label>
-              <label>
-                Y:
-                <input
-                  type="number"
-                  value={Math.round(curve[pointType].y)}
-                  onChange={(e) => handleInputChange(pointType, 'y', parseFloat(e.target.value) || 0)}
-                  title={`${pointLabels[pointType]} Y coordinate`}
-                />
-              </label>
+        <h4>Nodes</h4>
+        <div className="node-info">
+          <p>Path has {path.nodes.length} nodes</p>
+          {selectedNodeIndex !== null && (
+            <div>
+              <p>Selected: Node {selectedNodeIndex + 1}</p>
+              <div className="node-controls">
+                <button 
+                  type="button" 
+                  onClick={handleDeleteSelectedNode}
+                  disabled={path.nodes.length <= 2}
+                  title="Delete selected node"
+                >
+                  Delete Node
+                </button>
+              </div>
             </div>
-          ))}
+          )}
+        </div>
+        <div className="node-instructions">
+          <strong>Instructions:</strong><br/>
+          • Click to select nodes<br/>
+          • Double-click on path to add nodes<br/>
+          • Drag nodes and handles to reshape<br/>
+          • Press Delete to remove selected node
         </div>
       </div>
 

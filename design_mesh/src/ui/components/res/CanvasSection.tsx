@@ -102,11 +102,15 @@ const CanvasSection: React.FC<CanvasProps> = ({
     // Instead of updating the existing shape, add the edited version as a new history entry
     // The original shape remains in history, and the new edited version is added
     
+    console.log('CanvasSection: Updating shape, curveData:', (updatedShape as any).curveData);
+    
     // Create a new symbol with updated properties and a new UUID for both history and document
     // Use Object.assign to ensure ALL properties (including extended ones) are copied
     const newHistorySymbol = Object.assign({}, updatedShape as any, {
       uuid: `${updatedShape.inventoryId}-${Date.now()}`, // New unique ID for history
     });
+    
+    console.log('CanvasSection: New history symbol curveData:', (newHistorySymbol as any).curveData);
     
     // Add the edited shape to symbols array (history) with all extended properties
     setSymbols((prev) => [...prev, newHistorySymbol]);
@@ -356,6 +360,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
                           size="large" 
                           stroke={(symbol as any).stroke}
                           strokeWidth={(symbol as any).strokeWidth}
+                          curveData={(symbol as any).curveData}
                         />
                       )}
                       {symbol.type === "historyIcon" && (
