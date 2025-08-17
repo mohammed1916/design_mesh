@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import "./CanvasSection.css";
 import { RectIcon, CircleIcon, PolygonIcon, CurveIcon, ClockIcon } from "../ShapeIcons";
 import { Button } from "@swc-react/button";
+import ShapeEditor from "../ShapeEditor";
 
 export type SymbolType = {
   uuid: string; // unique per instance on canvas/document
@@ -23,6 +24,7 @@ interface CanvasProps {
   setSelectedId: (id: string | null) => void;
   onAddInventory: (inventoryId: string) => void;
   onInsertSymbol: (symbol: SymbolType) => void;
+  onInsertUpdatedShape?: (symbol: SymbolType) => Promise<void>; // New prop for direct shape insertion
   inventoryList?: { inventoryId: string }[]; // Pass inventory list for star logic
   toast?: string | null;
   setToast?: React.Dispatch<React.SetStateAction<string | null>>;
@@ -66,6 +68,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
   setSelectedId,
   onAddInventory,
   onInsertSymbol,
+  onInsertUpdatedShape,
   inventoryList = [],
   toast,
   setToast,
@@ -73,6 +76,8 @@ const CanvasSection: React.FC<CanvasProps> = ({
   const [open, setOpen] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [enableScroll, setEnableScroll] = useState(false); // <-- scroll toggle
+  const [editingShape, setEditingShape] = useState<SymbolType | null>(null);
+  const [showShapeEditor, setShowShapeEditor] = useState(false);
 
   // Helper to check if a symbol is in inventory by inventoryId
   const isInInventory = (inventoryId: string) =>
@@ -85,6 +90,43 @@ const CanvasSection: React.FC<CanvasProps> = ({
       )
     );
     onAddInventory(inventoryId);
+  };
+
+  // Shape editor handlers
+  const handleShapeEdit = (shape: SymbolType) => {
+    setEditingShape(shape);
+    setShowShapeEditor(true);
+  };
+
+  const handleShapeUpdate = async (updatedShape: SymbolType) => {
+    setSymbols((prev) =>
+      prev.map((s) => (s.uuid === updatedShape.uuid ? updatedShape : s))
+    );
+    setShowShapeEditor(false);
+    setEditingShape(null);
+    
+    // Use direct shape insertion if available, otherwise fall back to inventory method
+    if (onInsertUpdatedShape) {
+      // Create a new symbol with updated properties for document insertion
+      const newSymbolForDocument = {
+        ...updatedShape,
+        uuid: `${updatedShape.inventoryId}-${Date.now()}`, // New unique ID for the document
+      };
+      
+      try {
+        await onInsertUpdatedShape(newSymbolForDocument);
+      } catch (error) {
+        console.error('Failed to insert updated shape:', error);
+      }
+    } else {
+      // Fallback to the original method
+      onInsertSymbol(updatedShape);
+    }
+  };
+
+  const handleCloseShapeEditor = () => {
+    setShowShapeEditor(false);
+    setEditingShape(null);
   };
 
   const renderInventoryStar = (symbol: SymbolType) => (
@@ -260,7 +302,17 @@ const CanvasSection: React.FC<CanvasProps> = ({
                     border: inInventory ? "0.5px solid var(--adobe-accent)" : "0.5px solid var(--adobe-border)",
                     outline: inInventory ? "0.1px solid var(--adobe-accent-hover)" : "none",
                   };
-                  const handleInsert = () => onInsertSymbol(symbol);
+                  const handleInsert = () => {
+                    if (symbol.type === "historyIcon") return;
+                    
+                    // If it's a shape that can be edited, show the editor
+                    if (['rect', 'circle', 'polygon', 'curve'].includes(symbol.type)) {
+                      handleShapeEdit(symbol);
+                    } else {
+                      // For other types (like images), insert directly
+                      onInsertSymbol(symbol);
+                    }
+                  };
                   const handleRemove = (e: React.MouseEvent) => {
                     e.stopPropagation();
                     setSymbols((prev) => prev.filter((s) => s.uuid !== symbol.uuid));
@@ -317,6 +369,16 @@ const CanvasSection: React.FC<CanvasProps> = ({
           )}
         </AnimatePresence>
       </div>
+      
+      {/* Shape Editor */}
+      {editingShape && (
+        <ShapeEditor
+          shape={editingShape}
+          onShapeUpdate={handleShapeUpdate}
+          onClose={handleCloseShapeEditor}
+          isVisible={showShapeEditor}
+        />
+      )}
     </div>
   );
 };

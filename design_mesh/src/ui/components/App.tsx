@@ -215,6 +215,7 @@ const AppContent = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; s
               setSelectedId={(id) => dispatch(setSelectedIds(id ? [id] : []))}
               onAddInventory={handleAddInventory}
               onInsertSymbol={handleInsertFromInventoryWithDocument}
+              onInsertUpdatedShape={insertSymbolToDocument}
               inventoryList={inventory.map((i) => ({ inventoryId: i.inventoryId }))}
               toast={toast}
               setToast={setToastWrapper}
