@@ -92,22 +92,24 @@ export const useShapeAndUploadLogic = (
         const curveData = symbolWithExtended.curveData;
         console.log('Curve generation - curveData:', curveData);
         if (curveData) {
-          // Calculate the bounding box to normalize coordinates
+          // Calculate the bounding box to get the offset
           const allPoints = [curveData.start, curveData.cp1, curveData.cp2, curveData.end];
           const minX = Math.min(...allPoints.map(p => p.x));
           const minY = Math.min(...allPoints.map(p => p.y));
           
-          console.log('Bounds:', { minX, minY, width: symbol.width, height: symbol.height });
+          // Get padding from symbol bounds (should match the BezierEditor padding)
+          const padding = Math.max(strokeWidth * 2, 10);
           
-          // Normalize coordinates to start from (0,0) by subtracting the minimum values
-          const normalizedStart = { x: curveData.start.x - minX, y: curveData.start.y - minY };
-          const normalizedCp1 = { x: curveData.cp1.x - minX, y: curveData.cp1.y - minY };
-          const normalizedCp2 = { x: curveData.cp2.x - minX, y: curveData.cp2.y - minY };
-          const normalizedEnd = { x: curveData.end.x - minX, y: curveData.end.y - minY };
+          // Adjust coordinates to be relative to the SVG's origin (accounting for padding)
+          const adjustedStart = { x: curveData.start.x - minX + padding, y: curveData.start.y - minY + padding };
+          const adjustedCp1 = { x: curveData.cp1.x - minX + padding, y: curveData.cp1.y - minY + padding };
+          const adjustedCp2 = { x: curveData.cp2.x - minX + padding, y: curveData.cp2.y - minY + padding };
+          const adjustedEnd = { x: curveData.end.x - minX + padding, y: curveData.end.y - minY + padding };
           
-          // Generate Bezier curve path using normalized coordinates
-          const pathData = `M ${normalizedStart.x},${normalizedStart.y} C ${normalizedCp1.x},${normalizedCp1.y} ${normalizedCp2.x},${normalizedCp2.y} ${normalizedEnd.x},${normalizedEnd.y}`;
+          // Generate Bezier curve path using adjusted coordinates
+          const pathData = `M ${adjustedStart.x},${adjustedStart.y} C ${adjustedCp1.x},${adjustedCp1.y} ${adjustedCp2.x},${adjustedCp2.y} ${adjustedEnd.x},${adjustedEnd.y}`;
           console.log('Generated path:', pathData);
+          console.log('SVG dimensions:', symbol.width, 'x', symbol.height);
           svg = `<path d="${pathData}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="${symbolWithExtended.lineCap || 'round'}" />`;
         } else {
           console.log('No curveData found, using fallback');
@@ -116,7 +118,9 @@ export const useShapeAndUploadLogic = (
         }
       }
 
-      const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}">${svg}</svg>`;
+      const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}" viewBox="0 0 ${symbol.width} ${symbol.height}">${svg}</svg>`;
+      
+      console.log('Final SVG:', fullSvg);
       
       const blob = await svgToBlob(fullSvg, symbol.width, symbol.height, 'png');
       

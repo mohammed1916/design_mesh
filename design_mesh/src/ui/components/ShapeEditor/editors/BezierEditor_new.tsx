@@ -49,20 +49,23 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
   }, [curve, curveProps]);
 
   useEffect(() => {
-    // Calculate curve path and update shape bounds
+    // Calculate curve path and update shape bounds - but keep original curve coordinates
     const allPoints = [curve.start, curve.cp1, curve.cp2, curve.end];
     const minX = Math.min(...allPoints.map(p => p.x));
     const minY = Math.min(...allPoints.map(p => p.y));
     const maxX = Math.max(...allPoints.map(p => p.x));
     const maxY = Math.max(...allPoints.map(p => p.y));
 
+    // Add some padding to ensure the full curve is visible
+    const padding = Math.max(curveProps.strokeWidth * 2, 10);
+
     const updatedShape: SymbolType = {
       ...shape,
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-      // Store curve data and styling as extended properties (similar to circle color fix)
+      x: minX - padding,
+      y: minY - padding,
+      width: (maxX - minX) + (padding * 2),
+      height: (maxY - minY) + (padding * 2),
+      // Store curve data and styling as extended properties (preserve original coordinates)
       ...(shape as any),
       curveData: curve,
       stroke: curveProps.stroke,
