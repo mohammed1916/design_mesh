@@ -21,10 +21,10 @@ interface BezierEditorProps {
 const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
   // Initialize curve data from existing shape or use defaults
   const initialCurve = (shape as any).curveData || {
-    start: { x: 50, y: 150 },
-    cp1: { x: 100, y: 50 },
-    cp2: { x: 200, y: 250 },
-    end: { x: 250, y: 150 },
+    start: { x: 100, y: 250 },
+    cp1: { x: 200, y: 100 },
+    cp2: { x: 400, y: 350 },
+    end: { x: 500, y: 250 },
   };
 
   const [curve, setCurve] = useState<BezierCurve>(initialCurve);
@@ -233,19 +233,19 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
 
   const resetCurve = () => {
     setCurve({
-      start: { x: 50, y: 150 },
-      cp1: { x: 100, y: 50 },
-      cp2: { x: 200, y: 250 },
-      end: { x: 250, y: 150 },
+      start: { x: 100, y: 250 },
+      cp1: { x: 200, y: 100 },
+      cp2: { x: 400, y: 350 },
+      end: { x: 500, y: 250 },
     });
   };
 
   const createSmoothCurve = () => {
     setCurve({
-      start: { x: 50, y: 150 },
-      cp1: { x: 120, y: 120 },
-      cp2: { x: 180, y: 180 },
-      end: { x: 250, y: 150 },
+      start: { x: 100, y: 225 },
+      cp1: { x: 250, y: 175 },
+      cp2: { x: 350, y: 275 },
+      end: { x: 500, y: 225 },
     });
   };
 
@@ -347,8 +347,8 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
         <div className="canvas-container">
           <canvas
             ref={canvasRef}
-            width={400}
-            height={300}
+            width={600}
+            height={450}
             className="canvas-preview"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}

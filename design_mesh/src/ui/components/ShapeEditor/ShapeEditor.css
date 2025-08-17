@@ -163,7 +163,13 @@
   border: 1px solid var(--adobe-border, #e0e0e0);
   border-radius: 8px;
   background: #ffffff;
-  overflow: hidden;
+  overflow: auto; /* Enable both horizontal and vertical scrolling */
+  max-width: 400px;
+  max-height: 300px;
+  width: 400px;
+  height: 300px;
+  margin: 0 auto;
+  position: relative;
 }
 
 .editor-preview {
@@ -180,6 +186,8 @@
 .canvas-preview {
   border: 1px solid #ccc;
   background: white;
+  display: block;
+  cursor: default;
 }
 
 .point-controls {
