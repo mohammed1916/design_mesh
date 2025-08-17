@@ -4,7 +4,7 @@ import { addSymbol, setToast } from "../store/appStore";
 import { AddOnSDKAPI } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
 import { SymbolType } from "../components/res/CanvasSection";
 import { SvgConversionParams, defaultConversionParams } from "../constants/inventory";
-import { sourceToSvg, unitsToPixels, encodeSvgToBase64, svgToBlob } from "../utils/svgUtils";
+import { sourceToSvg, unitsToPixels, encodeSvgToBase64, svgToBlob, svgToImageBlob } from "../utils/svgUtils";
 import { v4 as uuidv4 } from "uuid";
 
 export const useShapeAndUploadLogic = (
@@ -190,9 +190,16 @@ export const useShapeAndUploadLogic = (
 
       const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}" viewBox="0 0 ${symbol.width} ${symbol.height}">${svg}</svg>`;
       
-      console.log('Final SVG:', fullSvg);
+      console.log('Final SVG for document insertion:', fullSvg);
       
-      const blob = await svgToBlob(fullSvg, symbol.width, symbol.height, 'png');
+      // For curves, use higher quality PNG conversion
+      const targetFormat = symbol.type === "curve" ? 'png' : 'png';
+      const quality = symbol.type === "curve" ? 1.0 : 0.9; // Use maximum quality for curves
+      
+      // Use screenshot-based method for curves to preserve exact visual representation
+      const blob = symbol.type === "curve" 
+        ? await svgToImageBlob(fullSvg, symbol.width, symbol.height, targetFormat, quality)
+        : await svgToBlob(fullSvg, symbol.width, symbol.height, targetFormat, quality, 1);
       
       if (sandboxProxy && sandboxProxy.createPositionedImage) {
         try {
@@ -345,13 +352,14 @@ export const useShapeAndUploadLogic = (
             }
           }
 
-          // Use the utility function to convert SVG to the desired format
+          // Use the utility function to convert SVG to the desired format with scaling for uploads
           const blob = await svgToBlob(
             new XMLSerializer().serializeToString(svgElement),
             targetWidth,
             targetHeight,
             params.format,
-            1.0 // Maximum quality (100%)
+            1.0, // Maximum quality (100%)
+            20 // Scale down by 20 for file uploads
           );
 
           // Convert blob to base64 data URL for persistent storage
