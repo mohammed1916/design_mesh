@@ -85,7 +85,6 @@ const CircleEditor: React.FC<CircleEditorProps> = ({ shape, onChange }) => {
       ...shape,
       [property]: value,
     } as any; // Use 'as any' to allow additional properties like fill, stroke
-    console.log('Circle color changed:', property, value, updatedShape); // Temporary debug log
     onChange(updatedShape);
   };
 

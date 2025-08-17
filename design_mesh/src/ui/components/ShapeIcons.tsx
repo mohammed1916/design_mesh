@@ -5,6 +5,11 @@ interface ShapeIconProps {
   size?: 'small' | 'large';
   width?: number;
   height?: number;
+  // Extended properties for dynamic styling
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  cornerRadius?: number;
 }
 
 // Size configurations
@@ -31,11 +36,21 @@ const SIZE_CONFIG = {
 export const RectIcon: React.FC<ShapeIconProps> = ({ 
   size = 'large',
   width,
-  height
+  height,
+  fill,
+  stroke,
+  strokeWidth,
+  cornerRadius
 }) => {
   const config = SIZE_CONFIG[size];
   const svgWidth = width || (size === 'small' ? 30 : 80);
   const svgHeight = height || (size === 'small' ? 20 : 80);
+  
+  // Use provided colors or fallback to defaults
+  const rectFill = fill || SHAPE_COLORS.RECT;
+  const rectStroke = stroke || SHAPE_COLORS.STROKE;
+  const rectStrokeWidth = strokeWidth || 2;
+  const rectCornerRadius = cornerRadius !== undefined ? cornerRadius : config.rect.rx;
   
   return (
     <svg width={svgWidth} height={svgHeight}>
@@ -44,10 +59,10 @@ export const RectIcon: React.FC<ShapeIconProps> = ({
         y={config.rect.y} 
         width={config.rect.width} 
         height={config.rect.height} 
-        fill={SHAPE_COLORS.RECT} 
-        stroke={SHAPE_COLORS.STROKE} 
-        strokeWidth={2} 
-        rx={config.rect.rx} 
+        fill={rectFill} 
+        stroke={rectStroke} 
+        strokeWidth={rectStrokeWidth} 
+        rx={rectCornerRadius} 
       />
     </svg>
   );
@@ -56,10 +71,18 @@ export const RectIcon: React.FC<ShapeIconProps> = ({
 export const CircleIcon: React.FC<ShapeIconProps> = ({ 
   size = 'large',
   width,
-  height
+  height,
+  fill,
+  stroke,
+  strokeWidth
 }) => {
   const config = SIZE_CONFIG[size];
   const svgSize = width || height || config.svg.width;
+  
+  // Use provided colors or fallback to defaults
+  const circleFill = fill || SHAPE_COLORS.CIRCLE;
+  const circleStroke = stroke || SHAPE_COLORS.STROKE;
+  const circleStrokeWidth = strokeWidth || 2;
   
   return (
     <svg width={svgSize} height={svgSize}>
@@ -67,9 +90,9 @@ export const CircleIcon: React.FC<ShapeIconProps> = ({
         cx={config.circle.cx} 
         cy={config.circle.cy} 
         r={config.circle.r} 
-        fill={SHAPE_COLORS.CIRCLE} 
-        stroke={SHAPE_COLORS.STROKE} 
-        strokeWidth={2} 
+        fill={circleFill} 
+        stroke={circleStroke} 
+        strokeWidth={circleStrokeWidth} 
       />
     </svg>
   );
@@ -78,18 +101,26 @@ export const CircleIcon: React.FC<ShapeIconProps> = ({
 export const PolygonIcon: React.FC<ShapeIconProps> = ({ 
   size = 'large',
   width,
-  height
+  height,
+  fill,
+  stroke,
+  strokeWidth
 }) => {
   const config = SIZE_CONFIG[size];
   const svgSize = width || height || config.svg.width;
+  
+  // Use provided colors or fallback to defaults
+  const polygonFill = fill || SHAPE_COLORS.POLYGON;
+  const polygonStroke = stroke || SHAPE_COLORS.STROKE;
+  const polygonStrokeWidth = strokeWidth || 2;
   
   return (
     <svg width={svgSize} height={svgSize}>
       <polygon 
         points={config.polygon.points} 
-        fill={SHAPE_COLORS.POLYGON} 
-        stroke={SHAPE_COLORS.STROKE} 
-        strokeWidth={2} 
+        fill={polygonFill} 
+        stroke={polygonStroke} 
+        strokeWidth={polygonStrokeWidth} 
       />
     </svg>
   );
@@ -98,18 +129,24 @@ export const PolygonIcon: React.FC<ShapeIconProps> = ({
 export const CurveIcon: React.FC<ShapeIconProps> = ({ 
   size = 'large',
   width,
-  height
+  height,
+  stroke,
+  strokeWidth
 }) => {
   const config = SIZE_CONFIG[size];
   const svgSize = width || height || config.svg.width;
+  
+  // Use provided colors or fallback to defaults (curves don't have fill)
+  const curveStroke = stroke || SHAPE_COLORS.CURVE;
+  const curveStrokeWidth = strokeWidth || config.curve.strokeWidth;
   
   return (
     <svg width={svgSize} height={svgSize}>
       <path 
         d={config.curve.d} 
         fill="none" 
-        stroke={SHAPE_COLORS.CURVE} 
-        strokeWidth={config.curve.strokeWidth} 
+        stroke={curveStroke} 
+        strokeWidth={curveStrokeWidth} 
       />
     </svg>
   );

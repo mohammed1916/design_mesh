@@ -50,17 +50,30 @@ export const useShapeAndUploadLogic = (
         return;
       }
     } else {
+      // Get extended properties from symbol (with fallbacks to default values)
+      const symbolWithExtended = symbol as any;
+      const fill = symbolWithExtended.fill || (symbol.type === "rect" ? "#90caf9" : symbol.type === "circle" ? "#a5d6a7" : symbol.type === "polygon" ? "#ffcc80" : "#ef9a9a");
+      const stroke = symbolWithExtended.stroke || "#333";
+      const strokeWidth = symbolWithExtended.strokeWidth || 2;
+      const cornerRadius = symbolWithExtended.cornerRadius || 0;
+      
       let svg = "";
-      if (symbol.type === "rect")
-        svg = `<rect width="${symbol.width}" height="${symbol.height}" fill="#90caf9" stroke="#333" stroke-width="2" />`;
-      else if (symbol.type === "circle")
-        svg = `<circle cx="${symbol.width / 2}" cy="${symbol.height / 2}" r="${symbol.width / 2 - 2}" fill="#a5d6a7" stroke="#333" stroke-width="2" />`;
-      else if (symbol.type === "polygon")
-        svg = `<polygon points="50,10 90,90 10,90" fill="#ffcc80" stroke="#333" stroke-width="2" />`;
-      else if (symbol.type === "curve")
-        svg = `<path d="M10,50 Q50,10 90,50" fill="none" stroke="#ef9a9a" stroke-width="3" />`; // Quadratic Bezier curve
+      if (symbol.type === "rect") {
+        if (cornerRadius > 0) {
+          svg = `<rect width="${symbol.width}" height="${symbol.height}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+        } else {
+          svg = `<rect width="${symbol.width}" height="${symbol.height}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+        }
+      } else if (symbol.type === "circle") {
+        svg = `<circle cx="${symbol.width / 2}" cy="${symbol.height / 2}" r="${(symbol.width / 2) - (strokeWidth / 2)}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+      } else if (symbol.type === "polygon") {
+        svg = `<polygon points="50,10 90,90 10,90" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+      } else if (symbol.type === "curve") {
+        svg = `<path d="M10,50 Q50,10 90,50" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+      }
 
       const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}">${svg}</svg>`;
+      
       const blob = await svgToBlob(fullSvg, symbol.width, symbol.height, 'png');
       await addOnSDKAPI.app.document.addImage(blob);
     }

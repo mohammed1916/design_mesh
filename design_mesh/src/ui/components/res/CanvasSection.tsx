@@ -99,28 +99,31 @@ const CanvasSection: React.FC<CanvasProps> = ({
   };
 
   const handleShapeUpdate = async (updatedShape: SymbolType) => {
-    setSymbols((prev) =>
-      prev.map((s) => (s.uuid === updatedShape.uuid ? updatedShape : s))
-    );
+    // Instead of updating the existing shape, add the edited version as a new history entry
+    // The original shape remains in history, and the new edited version is added
+    
+    // Create a new symbol with updated properties and a new UUID for both history and document
+    // Use Object.assign to ensure ALL properties (including extended ones) are copied
+    const newHistorySymbol = Object.assign({}, updatedShape as any, {
+      uuid: `${updatedShape.inventoryId}-${Date.now()}`, // New unique ID for history
+    });
+    
+    // Add the edited shape to symbols array (history) with all extended properties
+    setSymbols((prev) => [...prev, newHistorySymbol]);
+    
     setShowShapeEditor(false);
     setEditingShape(null);
     
     // Use direct shape insertion if available, otherwise fall back to inventory method
     if (onInsertUpdatedShape) {
-      // Create a new symbol with updated properties for document insertion
-      const newSymbolForDocument = {
-        ...updatedShape,
-        uuid: `${updatedShape.inventoryId}-${Date.now()}`, // New unique ID for the document
-      };
-      
       try {
-        await onInsertUpdatedShape(newSymbolForDocument);
+        await onInsertUpdatedShape(newHistorySymbol);
       } catch (error) {
         console.error('Failed to insert updated shape:', error);
       }
     } else {
       // Fallback to the original method
-      onInsertSymbol(updatedShape);
+      onInsertSymbol(newHistorySymbol);
     }
   };
 
@@ -324,16 +327,36 @@ const CanvasSection: React.FC<CanvasProps> = ({
                       onClick={symbol.type !== "historyIcon" ? handleInsert : undefined}
                     >
                       {symbol.type === "rect" && (
-                        <RectIcon size="large" />
+                        <RectIcon 
+                          size="large" 
+                          fill={(symbol as any).fill}
+                          stroke={(symbol as any).stroke}
+                          strokeWidth={(symbol as any).strokeWidth}
+                          cornerRadius={(symbol as any).cornerRadius}
+                        />
                       )}
                       {symbol.type === "circle" && (
-                        <CircleIcon size="large" />
+                        <CircleIcon 
+                          size="large" 
+                          fill={(symbol as any).fill}
+                          stroke={(symbol as any).stroke}
+                          strokeWidth={(symbol as any).strokeWidth}
+                        />
                       )}
                       {symbol.type === "polygon" && (
-                        <PolygonIcon size="large" />
+                        <PolygonIcon 
+                          size="large" 
+                          fill={(symbol as any).fill}
+                          stroke={(symbol as any).stroke}
+                          strokeWidth={(symbol as any).strokeWidth}
+                        />
                       )}
                       {symbol.type === "curve" && (
-                        <CurveIcon size="large" />
+                        <CurveIcon 
+                          size="large" 
+                          stroke={(symbol as any).stroke}
+                          strokeWidth={(symbol as any).strokeWidth}
+                        />
                       )}
                       {symbol.type === "historyIcon" && (
                         <div className="history-icon-container">

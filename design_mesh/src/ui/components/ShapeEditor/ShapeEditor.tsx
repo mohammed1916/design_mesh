@@ -28,7 +28,6 @@ const ShapeEditor: React.FC<ShapeEditorProps> = ({
     // Ensure we preserve all properties, including extended ones
     setCurrentShape(prev => ({ ...prev, ...updatedShape }));
     setHasUnsavedChanges(true);
-    console.log('Shape changed:', updatedShape); // Temporary debug log
   };
 
   const handleSave = () => {
