@@ -41,12 +41,18 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
   // Add drag state
   const [isDragging, setIsDragging] = useState(false);
   const [dragPoint, setDragPoint] = useState<keyof BezierCurve | null>(null);
+  
+  // Add zoom state
+  const [zoom, setZoom] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     drawBezier();
-  }, [curve, curveProps]);
+  }, [curve, curveProps, zoom, panOffset]);
 
   useEffect(() => {
     // Calculate curve path and update shape bounds - but keep original curve coordinates
@@ -85,6 +91,11 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Save context and apply transformations
+    ctx.save();
+    ctx.translate(panOffset.x, panOffset.y);
+    ctx.scale(zoom, zoom);
 
     // Draw bezier curve
     ctx.strokeStyle = curveProps.stroke;
@@ -134,28 +145,70 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
       ctx.lineWidth = 2;
       ctx.stroke();
     });
+    
+    // Restore context
+    ctx.restore();
   };
 
-  // Helper function to get mouse position relative to canvas
+  // Helper function to get mouse position relative to canvas with zoom/pan
   const getMousePos = (canvas: HTMLCanvasElement, e: React.MouseEvent): ControlPoint => {
     const rect = canvas.getBoundingClientRect();
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
+    
+    // Transform coordinates to account for zoom and pan
     return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (canvasX - panOffset.x) / zoom,
+      y: (canvasY - panOffset.y) / zoom,
     };
   };
 
-  // Helper function to check if mouse is near a point
+  // Helper function to check if mouse is near a point (accounting for zoom)
   const isNearPoint = (mouse: ControlPoint, point: ControlPoint, threshold = 10): boolean => {
+    const adjustedThreshold = threshold / zoom; // Adjust threshold based on zoom
     const dx = mouse.x - point.x;
     const dy = mouse.y - point.y;
-    return Math.sqrt(dx * dx + dy * dy) < threshold;
+    return Math.sqrt(dx * dx + dy * dy) < adjustedThreshold;
+  };
+
+  // Mouse wheel handler for zooming
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Zoom factor
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.max(0.1, Math.min(5, zoom * zoomFactor));
+    
+    // Calculate new pan offset to keep mouse position stable
+    const newPanOffset = {
+      x: mouseX - ((mouseX - panOffset.x) * newZoom) / zoom,
+      y: mouseY - ((mouseY - panOffset.y) * newZoom) / zoom,
+    };
+    
+    setZoom(newZoom);
+    setPanOffset(newPanOffset);
   };
 
   // Mouse event handlers
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Check for middle button pan
+    if (e.button === 1) {
+      setIsPanning(true);
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
+      return;
+    }
+    
+    // Check for regular mouse interactions (left button)
+    if (e.button !== 0) return;
 
     const mousePos = getMousePos(canvas, e);
     
@@ -175,6 +228,20 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // Handle panning
+    if (isPanning && lastPanPoint) {
+      const deltaX = e.clientX - lastPanPoint.x;
+      const deltaY = e.clientY - lastPanPoint.y;
+      
+      setPanOffset(prev => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY
+      }));
+      
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
+      return;
+    }
 
     const mousePos = getMousePos(canvas, e);
 
@@ -203,6 +270,8 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
   const handleMouseUp = () => {
     setIsDragging(false);
     setDragPoint(null);
+    setIsPanning(false);
+    setLastPanPoint(null);
     const canvas = canvasRef.current;
     if (canvas) {
       canvas.style.cursor = 'default';
@@ -212,6 +281,8 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
   const handleMouseLeave = () => {
     setIsDragging(false);
     setDragPoint(null);
+    setIsPanning(false);
+    setLastPanPoint(null);
     const canvas = canvasRef.current;
     if (canvas) {
       canvas.style.cursor = 'default';
@@ -347,6 +418,33 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
 
       <div className="editor-section">
         <h4>Preview</h4>
+        <div className="zoom-controls">
+          <button 
+            type="button" 
+            onClick={() => setZoom(prev => Math.max(0.1, prev * 0.8))}
+            title="Zoom out"
+          >
+            Zoom Out
+          </button>
+          <span className="zoom-level">{Math.round(zoom * 100)}%</span>
+          <button 
+            type="button" 
+            onClick={() => setZoom(prev => Math.min(5, prev * 1.25))}
+            title="Zoom in"
+          >
+            Zoom In
+          </button>
+          <button 
+            type="button" 
+            onClick={() => {
+              setZoom(1);
+              setPanOffset({x: 0, y: 0});
+            }}
+            title="Reset zoom and pan"
+          >
+            Reset View
+          </button>
+        </div>
         <div className="canvas-container">
           <canvas
             ref={canvasRef}
@@ -357,10 +455,12 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
+            onWheel={handleWheel}
           />
         </div>
         <div className="editor-legend">
-          <strong>Legend:</strong> Blue = Start/End points, Green = Control points
+          <strong>Legend:</strong> Blue = Start/End points, Green = Control points<br/>
+          <em>Mouse wheel to zoom, middle-click and drag to pan</em>
         </div>
       </div>
     </div>

@@ -19,8 +19,8 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   width: 90vw;
   max-width: 900px;
-  height: 80vh;
-  max-height: 600px;
+  height: 85vh;
+  max-height: 700px;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--adobe-border, #e0e0e0);
@@ -274,4 +274,51 @@
   margin-top: 8px;
   font-size: 12px;
   color: #666;
+}
+
+/* Zoom controls */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: var(--adobe-surface, #f8f9fa);
+  border-radius: 6px;
+  border: 2px solid var(--adobe-border, #e0e0e0);
+  justify-content: center;
+}
+
+.zoom-controls button {
+  padding: 6px 14px;
+  background: var(--adobe-accent, #2196F3);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.zoom-controls button:hover {
+  background: var(--adobe-accent-hover, #1976D2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.zoom-level {
+  min-width: 60px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--adobe-text, #333333);
+  background: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--adobe-border, #e0e0e0);
+}
+
+.canvas-preview {
+  cursor: default;
 }
