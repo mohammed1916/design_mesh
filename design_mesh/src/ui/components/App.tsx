@@ -53,6 +53,7 @@ const AppContent = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; s
 
   // SVG conversion state
   const [svgConversionData, setSvgConversionData] = useState<{ file: File; reader: FileReader; params: SvgConversionParams } | null>(null);
+  const [svgConverting, setSvgConverting] = useState(false);
 
   // Inventory state
   const [inventoryOpen, setInventoryOpen] = useState(true);
@@ -147,11 +148,20 @@ const AppContent = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; s
   }, [inventory.length, inventoryOpen]);
 
   // SVG conversion handlers
-  const handleSvgConversionComplete = (convertToPng: boolean) => {
+  const handleSvgConversionComplete = async (convertToPng: boolean) => {
     if (svgConversionData && convertToPng) {
-      handleSvgConversion(true, svgConversionData);
+      setSvgConverting(true);
+      try {
+        await handleSvgConversion(true, svgConversionData);
+      } catch (error) {
+        console.error('SVG conversion failed:', error);
+      } finally {
+        setSvgConverting(false);
+        setSvgConversionData(null);
+      }
+    } else {
+      setSvgConversionData(null);
     }
-    setSvgConversionData(null);
   };
 
   const handleSvgConversionParamsChange = (params: SvgConversionParams) => {
@@ -187,7 +197,8 @@ const AppContent = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; s
               params={svgConversionData?.params || { format: 'png', maintainAspectRatio: true }}
               onParamsChange={handleSvgConversionParamsChange}
               onConvert={() => handleSvgConversionComplete(true)}
-              onCancel={() => setSvgConversionData(null)}
+              onCancel={() => !svgConverting && setSvgConversionData(null)}
+              isConverting={svgConverting}
             />
 
             {/* Shape Controls */}

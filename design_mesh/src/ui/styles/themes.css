@@ -80,7 +80,7 @@
   --adobe-surface: #4a4a4a;
   --adobe-border: #5a5a5a;
   --adobe-text: #ffffff;
-  --adobe-text-secondary: #b0b0b0;
+  --adobe-text-secondary: #cdd3d4;
   --adobe-accent: #4dabf7;
   --adobe-accent-hover: #74c0fc;
   --adobe-shadow: rgba(0, 0, 0, 0.3);
@@ -124,10 +124,10 @@
   
   /* Adobe-specific variables for acrylic */
   --adobe-background: rgba(236, 48, 154, 0.4);
-  --adobe-surface: rgba(177, 44, 119, 0.4);
+  --adobe-surface: rgba(254, 139, 204, 0.4);
   --adobe-border: rgba(177, 24, 188, 0.343);
   --adobe-text: #ffffff;
-  --adobe-text-secondary: #ac2882;
+  --adobe-text-secondary: #f3e8ef;
   --adobe-accent: #c437d4;
   --adobe-accent-hover: #b4239c;
   --adobe-shadow: rgba(138, 19, 86, 0.15);

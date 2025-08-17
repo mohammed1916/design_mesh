@@ -170,75 +170,87 @@ export const useShapeAndUploadLogic = (
 
     const { file, reader, params } = svgConversionData;
 
-    reader.onload = async (ev) => {
-      try {
-        let svgData = ev.target?.result as string;
-        if (svgData.startsWith('data:image/svg+xml;base64,')) {
-          svgData = atob(svgData.replace('data:image/svg+xml;base64,', ''));
-        }
-
-        // Use our enhanced SVG parsing utility
-        const svgElement = await sourceToSvg(svgData, { 
-          trim: true,
-          type: 'image/svg+xml'
-        });
-
-        // Use fixed max dimensions
-        const MAX_DIMENSION = 8062;
-        const originalWidth = parseFloat(svgElement.getAttribute('width') || '0') || 
-                            parseFloat((svgElement.getAttribute('viewBox')?.split(' ')[2] || '0')) || 500;
-        const originalHeight = parseFloat(svgElement.getAttribute('height') || '0') || 
-                             parseFloat((svgElement.getAttribute('viewBox')?.split(' ')[3] || '0')) || 500;
-
-        // Calculate dimensions maintaining aspect ratio
-        let targetWidth = MAX_DIMENSION;
-        let targetHeight = MAX_DIMENSION;
-        
-        if (params.maintainAspectRatio) {
-          const ratio = originalWidth / originalHeight;
-          if (ratio > 1) {
-            targetHeight = MAX_DIMENSION / ratio;
-          } else {
-            targetWidth = MAX_DIMENSION * ratio;
+    return new Promise<void>((resolve, reject) => {
+      reader.onload = async (ev) => {
+        try {
+          let svgData = ev.target?.result as string;
+          if (svgData.startsWith('data:image/svg+xml;base64,')) {
+            svgData = atob(svgData.replace('data:image/svg+xml;base64,', ''));
           }
+
+          // Use our enhanced SVG parsing utility
+          const svgElement = await sourceToSvg(svgData, { 
+            trim: true,
+            type: 'image/svg+xml'
+          });
+
+          // Use fixed max dimensions
+          const MAX_DIMENSION = 8062;
+          const originalWidth = parseFloat(svgElement.getAttribute('width') || '0') || 
+                              parseFloat((svgElement.getAttribute('viewBox')?.split(' ')[2] || '0')) || 500;
+          const originalHeight = parseFloat(svgElement.getAttribute('height') || '0') || 
+                               parseFloat((svgElement.getAttribute('viewBox')?.split(' ')[3] || '0')) || 500;
+
+          // Calculate dimensions maintaining aspect ratio
+          let targetWidth = MAX_DIMENSION;
+          let targetHeight = MAX_DIMENSION;
+          
+          if (params.maintainAspectRatio) {
+            const ratio = originalWidth / originalHeight;
+            if (ratio > 1) {
+              targetHeight = MAX_DIMENSION / ratio;
+            } else {
+              targetWidth = MAX_DIMENSION * ratio;
+            }
+          }
+
+          // Use the utility function to convert SVG to the desired format
+          const blob = await svgToBlob(
+            new XMLSerializer().serializeToString(svgElement),
+            targetWidth,
+            targetHeight,
+            params.format,
+            1.0 // Maximum quality (100%)
+          );
+
+          // Convert blob to base64 data URL for persistent storage
+          const convertedUrl = await new Promise<string>((resolveUrl) => {
+            const urlReader = new FileReader();
+            urlReader.onload = () => resolveUrl(urlReader.result as string);
+            urlReader.readAsDataURL(blob);
+          });
+
+          // Create the symbol
+          const symbol: SymbolType = {
+            uuid: uuidv4(),
+            inventoryId: uuidv4(),
+            x: 0,
+            y: 0,
+            width: 80,
+            height: 80,
+            type: "image",
+            src: convertedUrl,
+          };
+          
+          // First insert to document, then add to symbols
+          await insertSymbolToDocument(symbol);
+          dispatch(addSymbol(symbol));
+          
+          resolve();
+        } catch (error: any) {
+          dispatch(setToast(`Error converting SVG: ${error.message}`));
+          reject(error);
         }
+      };
 
-        // Use the utility function to convert SVG to the desired format
-        const blob = await svgToBlob(
-          new XMLSerializer().serializeToString(svgElement),
-          targetWidth,
-          targetHeight,
-          params.format,
-          1.0 // Maximum quality (100%)
-        );
+      reader.onerror = () => {
+        const error = new Error('Failed to read SVG file');
+        dispatch(setToast('Failed to read SVG file'));
+        reject(error);
+      };
 
-        // Convert blob to base64 data URL for persistent storage
-        const convertedUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
-
-        // Create and add the symbol
-        const symbol: SymbolType = {
-          uuid: uuidv4(),
-          inventoryId: uuidv4(),
-          x: 0,
-          y: 0,
-          width: 80,
-          height: 80,
-          type: "image",
-          src: convertedUrl,
-        };
-        
-        dispatch(addSymbol(symbol));
-        await insertSymbolToDocument(symbol);
-      } catch (error: any) {
-        dispatch(setToast(`Error converting SVG: ${error.message}`));
-      }
-    };
-
-    reader.readAsText(file);
+      reader.readAsText(file);
+    });
   }, [dispatch, insertSymbolToDocument]);
 
   return {
