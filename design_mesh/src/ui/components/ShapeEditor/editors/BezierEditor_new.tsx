@@ -126,8 +126,51 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
+  
+  // Boundary preview states
+  const [showBoundary, setShowBoundary] = useState(false);
+  const [boundaryPadding, setBoundaryPadding] = useState(20);
+  const [boundaryBounds, setBoundaryBounds] = useState<{ minX: number; minY: number; maxX: number; maxY: number } | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Calculate boundary bounds from current path
+  const calculateBounds = (): { minX: number; minY: number; maxX: number; maxY: number } => {
+    if (path.nodes.length === 0) return { minX: 0, minY: 0, maxX: 100, maxY: 100 };
+    
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    
+    path.nodes.forEach(node => {
+      // Check main point
+      minX = Math.min(minX, node.point.x);
+      minY = Math.min(minY, node.point.y);
+      maxX = Math.max(maxX, node.point.x);
+      maxY = Math.max(maxY, node.point.y);
+      
+      // Check handles
+      if (node.leftHandle) {
+        minX = Math.min(minX, node.leftHandle.x);
+        minY = Math.min(minY, node.leftHandle.y);
+        maxX = Math.max(maxX, node.leftHandle.x);
+        maxY = Math.max(maxY, node.leftHandle.y);
+      }
+      if (node.rightHandle) {
+        minX = Math.min(minX, node.rightHandle.x);
+        minY = Math.min(minY, node.rightHandle.y);
+        maxX = Math.max(maxX, node.rightHandle.x);
+        maxY = Math.max(maxY, node.rightHandle.y);
+      }
+    });
+    
+    return { minX, minY, maxX, maxY };
+  };
+
+  // Update boundary bounds whenever path changes
+  useEffect(() => {
+    if (showBoundary) {
+      setBoundaryBounds(calculateBounds());
+    }
+  }, [path, showBoundary]);
 
   useEffect(() => {
     drawBezier();
@@ -290,6 +333,60 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
         }
       }
     });
+    
+    // Draw boundary preview if enabled
+    if (showBoundary && boundaryBounds) {
+      const bounds = boundaryBounds;
+      const totalPadding = boundaryPadding;
+      
+      // Draw boundary rectangle
+      ctx.strokeStyle = '#ff0000';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.rect(
+        bounds.minX - totalPadding,
+        bounds.minY - totalPadding,
+        (bounds.maxX - bounds.minX) + (2 * totalPadding),
+        (bounds.maxY - bounds.minY) + (2 * totalPadding)
+      );
+      ctx.stroke();
+      
+      // Draw semi-transparent fill
+      ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+      ctx.fillRect(
+        bounds.minX - totalPadding,
+        bounds.minY - totalPadding,
+        (bounds.maxX - bounds.minX) + (2 * totalPadding),
+        (bounds.maxY - bounds.minY) + (2 * totalPadding)
+      );
+      
+      // Draw corner handles
+      const corners = [
+        { x: bounds.minX - totalPadding, y: bounds.minY - totalPadding }, // Top-left
+        { x: bounds.maxX + totalPadding, y: bounds.minY - totalPadding }, // Top-right
+        { x: bounds.maxX + totalPadding, y: bounds.maxY + totalPadding }, // Bottom-right
+        { x: bounds.minX - totalPadding, y: bounds.maxY + totalPadding }  // Bottom-left
+      ];
+      
+      ctx.setLineDash([]);
+      corners.forEach((corner, index) => {
+        ctx.beginPath();
+        ctx.rect(corner.x - 4, corner.y - 4, 8, 8);
+        ctx.fillStyle = '#ff0000';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+      
+      // Draw boundary info text
+      ctx.fillStyle = '#000000';
+      ctx.font = '12px Arial';
+      const width = (bounds.maxX - bounds.minX) + (2 * totalPadding);
+      const height = (bounds.maxY - bounds.minY) + (2 * totalPadding);
+      ctx.fillText(`Boundary: ${Math.round(width)}×${Math.round(height)}px`, bounds.minX - totalPadding, bounds.minY - totalPadding - 10);
+    }
     
     // Restore context
     ctx.restore();
@@ -734,6 +831,46 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
 
       <div className="editor-section">
         <h4>Preview</h4>
+        
+        {/* Boundary Controls */}
+        <div className="boundary-controls">
+          <div className="control-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={showBoundary}
+                onChange={(e) => setShowBoundary(e.target.checked)}
+              />
+              Show Export Boundary
+            </label>
+          </div>
+          
+          {showBoundary && (
+            <div className="boundary-settings">
+              <div className="control-group">
+                <label>Boundary Padding: {boundaryPadding}px</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={boundaryPadding}
+                  onChange={(e) => setBoundaryPadding(parseInt(e.target.value))}
+                  title="Adjust boundary padding"
+                />
+              </div>
+              
+              {boundaryBounds && (
+                <div className="boundary-info">
+                  <small>
+                    Export size: {Math.round((boundaryBounds.maxX - boundaryBounds.minX) + (2 * boundaryPadding))} × {Math.round((boundaryBounds.maxY - boundaryBounds.minY) + (2 * boundaryPadding))}px<br/>
+                    Content bounds: ({Math.round(boundaryBounds.minX)}, {Math.round(boundaryBounds.minY)}) to ({Math.round(boundaryBounds.maxX)}, {Math.round(boundaryBounds.maxY)})
+                  </small>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
         <div className="zoom-controls">
           <button 
             type="button" 
@@ -776,6 +913,7 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
         </div>
         <div className="editor-legend">
           <strong>Legend:</strong> Blue = Start/End points, Green = Control points<br/>
+          {showBoundary && <span><strong>Red dashed box</strong> = Export boundary with corner handles<br/></span>}
           <em>Mouse wheel to zoom, middle-click and drag to pan</em>
         </div>
       </div>

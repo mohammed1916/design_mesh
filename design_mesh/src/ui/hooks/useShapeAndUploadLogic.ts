@@ -197,9 +197,16 @@ export const useShapeAndUploadLogic = (
       const quality = symbol.type === "curve" ? 1.0 : 0.9; // Use maximum quality for curves
       
       // Use screenshot-based method for curves to preserve exact visual representation
-      const blob = symbol.type === "curve" 
+      const result = symbol.type === "curve" 
         ? await svgToImageBlob(fullSvg, symbol.width, symbol.height, targetFormat, quality)
-        : await svgToBlob(fullSvg, symbol.width, symbol.height, targetFormat, quality, 1);
+        : { blob: await svgToBlob(fullSvg, symbol.width, symbol.height, targetFormat, quality, 1), boundaryInfo: null };
+      
+      const blob = result.blob;
+      
+      // Log boundary information for debugging
+      if (result.boundaryInfo) {
+        console.log('Boundary detection:', result.boundaryInfo);
+      }
       
       if (sandboxProxy && sandboxProxy.createPositionedImage) {
         try {
