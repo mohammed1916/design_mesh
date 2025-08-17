@@ -88,7 +88,32 @@ export const useShapeAndUploadLogic = (
       } else if (symbol.type === "polygon") {
         svg = `<polygon points="50,10 90,90 10,90" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
       } else if (symbol.type === "curve") {
-        svg = `<path d="M10,50 Q50,10 90,50" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+        // Get curve data from symbol's extended properties
+        const curveData = symbolWithExtended.curveData;
+        console.log('Curve generation - curveData:', curveData);
+        if (curveData) {
+          // Calculate the bounding box to normalize coordinates
+          const allPoints = [curveData.start, curveData.cp1, curveData.cp2, curveData.end];
+          const minX = Math.min(...allPoints.map(p => p.x));
+          const minY = Math.min(...allPoints.map(p => p.y));
+          
+          console.log('Bounds:', { minX, minY, width: symbol.width, height: symbol.height });
+          
+          // Normalize coordinates to start from (0,0) by subtracting the minimum values
+          const normalizedStart = { x: curveData.start.x - minX, y: curveData.start.y - minY };
+          const normalizedCp1 = { x: curveData.cp1.x - minX, y: curveData.cp1.y - minY };
+          const normalizedCp2 = { x: curveData.cp2.x - minX, y: curveData.cp2.y - minY };
+          const normalizedEnd = { x: curveData.end.x - minX, y: curveData.end.y - minY };
+          
+          // Generate Bezier curve path using normalized coordinates
+          const pathData = `M ${normalizedStart.x},${normalizedStart.y} C ${normalizedCp1.x},${normalizedCp1.y} ${normalizedCp2.x},${normalizedCp2.y} ${normalizedEnd.x},${normalizedEnd.y}`;
+          console.log('Generated path:', pathData);
+          svg = `<path d="${pathData}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="${symbolWithExtended.lineCap || 'round'}" />`;
+        } else {
+          console.log('No curveData found, using fallback');
+          // Fallback to default curve if no curve data
+          svg = `<path d="M10,50 Q50,10 90,50" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
+        }
       }
 
       const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}">${svg}</svg>`;

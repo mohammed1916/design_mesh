@@ -19,18 +19,28 @@ interface BezierEditorProps {
 }
 
 const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
-  const [curve, setCurve] = useState<BezierCurve>({
+  // Initialize curve data from existing shape or use defaults
+  const initialCurve = (shape as any).curveData || {
     start: { x: 50, y: 150 },
     cp1: { x: 100, y: 50 },
     cp2: { x: 200, y: 250 },
     end: { x: 250, y: 150 },
-  });
+  };
 
-  const [curveProps, setCurveProps] = useState({
-    stroke: '#ef9a9a',
-    strokeWidth: 3,
-    lineCap: 'round' as const,
-  });
+  const [curve, setCurve] = useState<BezierCurve>(initialCurve);
+
+  // Initialize curve properties from existing shape or use defaults
+  const initialProps = {
+    stroke: (shape as any).stroke || '#ef9a9a',
+    strokeWidth: (shape as any).strokeWidth || 3,
+    lineCap: (shape as any).lineCap || 'round' as const,
+  };
+
+  const [curveProps, setCurveProps] = useState(initialProps);
+
+  // Add drag state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPoint, setDragPoint] = useState<keyof BezierCurve | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -52,10 +62,16 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
       y: minY,
       width: maxX - minX,
       height: maxY - minY,
+      // Store curve data and styling as extended properties (similar to circle color fix)
+      ...(shape as any),
+      curveData: curve,
+      stroke: curveProps.stroke,
+      strokeWidth: curveProps.strokeWidth,
+      lineCap: curveProps.lineCap
     };
 
     onChange(updatedShape);
-  }, [curve]);
+  }, [curve, curveProps]);
 
   const drawBezier = () => {
     const canvas = canvasRef.current;
@@ -115,6 +131,88 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
       ctx.lineWidth = 2;
       ctx.stroke();
     });
+  };
+
+  // Helper function to get mouse position relative to canvas
+  const getMousePos = (canvas: HTMLCanvasElement, e: React.MouseEvent): ControlPoint => {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  };
+
+  // Helper function to check if mouse is near a point
+  const isNearPoint = (mouse: ControlPoint, point: ControlPoint, threshold = 10): boolean => {
+    const dx = mouse.x - point.x;
+    const dy = mouse.y - point.y;
+    return Math.sqrt(dx * dx + dy * dy) < threshold;
+  };
+
+  // Mouse event handlers
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const mousePos = getMousePos(canvas, e);
+    
+    // Check which point is being clicked
+    const pointKeys: (keyof BezierCurve)[] = ['start', 'cp1', 'cp2', 'end'];
+    
+    for (const pointKey of pointKeys) {
+      if (isNearPoint(mousePos, curve[pointKey])) {
+        setIsDragging(true);
+        setDragPoint(pointKey);
+        canvas.style.cursor = 'grabbing';
+        break;
+      }
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const mousePos = getMousePos(canvas, e);
+
+    if (isDragging && dragPoint) {
+      // Update the dragged point position
+      setCurve(prev => ({
+        ...prev,
+        [dragPoint]: mousePos,
+      }));
+    } else {
+      // Change cursor when hovering over points
+      const pointKeys: (keyof BezierCurve)[] = ['start', 'cp1', 'cp2', 'end'];
+      let isOverPoint = false;
+      
+      for (const pointKey of pointKeys) {
+        if (isNearPoint(mousePos, curve[pointKey])) {
+          isOverPoint = true;
+          break;
+        }
+      }
+      
+      canvas.style.cursor = isOverPoint ? 'grab' : 'default';
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragPoint(null);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.style.cursor = 'default';
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    setDragPoint(null);
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.style.cursor = 'default';
+    }
   };
 
   const handlePointChange = (pointType: keyof BezierCurve, newPoint: ControlPoint) => {
@@ -252,6 +350,10 @@ const BezierEditor: React.FC<BezierEditorProps> = ({ shape, onChange }) => {
             width={400}
             height={300}
             className="canvas-preview"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
           />
         </div>
         <div className="editor-legend">
