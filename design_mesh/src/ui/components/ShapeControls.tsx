@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@swc-react/button";
 import Tippy from '@tippyjs/react';
+import AIShapeControls from './AIShapeControls';
 
 interface ShapeControlsProps {
   onInsertShape: (type: "rect" | "circle" | "polygon") => void;
@@ -10,6 +11,10 @@ interface ShapeControlsProps {
 const ShapeControls: React.FC<ShapeControlsProps> = ({ onInsertShape, onUpload }) => {
   return (
     <div className="top-controls">
+      {/* AI Shape Generation - positioned above existing shape controls */}
+      <AIShapeControls />
+      
+      {/* Existing Shape Controls */}
       <div className="shape-row">
         <div onClick={() => onInsertShape("rect")}> 
           <svg width={40} height={40}>

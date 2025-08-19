@@ -3,6 +3,9 @@ import { v4 as uuidv4 } from "uuid";
 import { SymbolType } from "../components/res/CanvasSection";
 import { DEFAULT_INVENTORY } from "../constants/inventory";
 
+// Re-export SymbolType for convenience
+export type { SymbolType } from "../components/res/CanvasSection";
+
 // Redux slice for symbols, inventory, tags, toast, selection
 const initialState = {
   symbols: [
@@ -36,6 +39,12 @@ const appSlice = createSlice({
         state.symbols = [];
       }
       state.symbols.push(action.payload);
+    },
+    updateSymbol(state, action) {
+      const index = state.symbols.findIndex(symbol => symbol.uuid === action.payload.uuid);
+      if (index !== -1) {
+        state.symbols[index] = action.payload;
+      }
     },
     setInventory(state, action) {
       state.inventory = action.payload;
@@ -88,6 +97,7 @@ export const store = configureStore({ reducer: { app: appSlice.reducer } });
 export const {
   setSymbols,
   addSymbol,
+  updateSymbol,
   setInventory,
   addInventory,
   removeInventory,
