@@ -5,6 +5,11 @@
   padding: 16px;
   margin-bottom: 16px;
   font-family: var(--adobe-font-family, 'Adobe Clean', Arial, sans-serif);
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .ai-header {
