@@ -272,25 +272,27 @@ Only respond with valid JSON, no other text.`;
 
   private parseShapeResponse(response: string, operation: 'generation' | 'modification', originalShape?: any): AIShapeResponse {
     try {
-      // Clean the response to extract JSON
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
+      // Remove markdown/code block wrappers
+      let clean = response.trim();
+      if (clean.startsWith('```json')) clean = clean.replace(/^```json/, '');
+      if (clean.startsWith('```')) clean = clean.replace(/^```/, '');
+      if (clean.endsWith('```')) clean = clean.replace(/```$/, '');
+      // Find first and last curly braces for JSON
+      const firstBrace = clean.indexOf('{');
+      const lastBrace = clean.lastIndexOf('}');
+      if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
         throw new Error('No valid JSON found in AI response');
       }
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      
+      const jsonStr = clean.substring(firstBrace, lastBrace + 1);
+      const parsed = JSON.parse(jsonStr);
       if (!parsed.shape) {
         throw new Error('AI response missing shape data');
       }
-
       const shape = parsed.shape;
-      
       // Validate required properties
       if (!shape.type || !['rect', 'circle', 'polygon'].includes(shape.type)) {
         throw new Error('Invalid or missing shape type');
       }
-
       // Ensure numeric properties
       const numericFields = ['x', 'y', 'width', 'height'];
       for (const field of numericFields) {
