@@ -547,3 +547,23 @@
         background-position: 200% 0%;
     }
 }
+
+/* Document size controls */
+.document-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.document-size-controls input[type="number"] {
+  width: 80px;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.document-size-controls span {
+  font-size: 12px;
+  color: #666;
+}

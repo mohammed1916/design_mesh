@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./CanvasSection.css";
-import { RectIcon, CircleIcon, PolygonIcon, CurveIcon, ClockIcon } from "../ShapeIcons";
+import { RectIcon, CircleIcon, PolygonIcon, ClockIcon } from "../ShapeIcons";
 import { Button } from "@swc-react/button";
 import ShapeEditor from "../ShapeEditor";
 
@@ -12,7 +12,7 @@ export type SymbolType = {
   y: number;
   width: number;
   height: number;
-  type: "rect" | "circle" | "polygon" | "image" | "historyIcon" | "curve";
+  type: "rect" | "circle" | "polygon" | "image" | "historyIcon";
   src?: string;
   inventory?: boolean;
 };
@@ -102,7 +102,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
     // Instead of updating the existing shape, add the edited version as a new history entry
     // The original shape remains in history, and the new edited version is added
     
-    console.log('CanvasSection: Updating shape, curveData:', (updatedShape as any).curveData);
+    console.log('CanvasSection: Updating shape');
     
     // Create a new symbol with updated properties and a new UUID for both history and document
     // Use Object.assign to ensure ALL properties (including extended ones) are copied
@@ -110,7 +110,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
       uuid: `${updatedShape.inventoryId}-${Date.now()}`, // New unique ID for history
     });
     
-    console.log('CanvasSection: New history symbol curveData:', (newHistorySymbol as any).curveData);
+    console.log('CanvasSection: New history symbol created');
     
     // Add the edited shape to symbols array (history) with all extended properties
     setSymbols((prev) => [...prev, newHistorySymbol]);
@@ -313,7 +313,7 @@ const CanvasSection: React.FC<CanvasProps> = ({
                     if (symbol.type === "historyIcon") return;
                     
                     // If it's a shape that can be edited, show the editor
-                    if (['rect', 'circle', 'polygon', 'curve'].includes(symbol.type)) {
+                    if (['rect', 'circle', 'polygon'].includes(symbol.type)) {
                       handleShapeEdit(symbol);
                     } else {
                       // For other types (like images), insert directly
@@ -353,14 +353,6 @@ const CanvasSection: React.FC<CanvasProps> = ({
                           fill={(symbol as any).fill}
                           stroke={(symbol as any).stroke}
                           strokeWidth={(symbol as any).strokeWidth}
-                        />
-                      )}
-                      {symbol.type === "curve" && (
-                        <CurveIcon 
-                          size="large" 
-                          stroke={(symbol as any).stroke}
-                          strokeWidth={(symbol as any).strokeWidth}
-                          curveData={(symbol as any).curveData}
                         />
                       )}
                       {symbol.type === "historyIcon" && (

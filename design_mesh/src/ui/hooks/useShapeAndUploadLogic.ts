@@ -4,7 +4,7 @@ import { addSymbol, setToast } from "../store/appStore";
 import { AddOnSDKAPI } from "https://new.express.adobe.com/static/add-on-sdk/sdk.js";
 import { SymbolType } from "../components/res/CanvasSection";
 import { SvgConversionParams, defaultConversionParams } from "../constants/inventory";
-import { sourceToSvg, unitsToPixels, encodeSvgToBase64, svgToBlob, svgToImageBlob } from "../utils/svgUtils";
+import { sourceToSvg, unitsToPixels, encodeSvgToBase64, svgToBlob } from "../utils/svgUtils";
 import { v4 as uuidv4 } from "uuid";
 
 export const useShapeAndUploadLogic = (
@@ -87,126 +87,25 @@ export const useShapeAndUploadLogic = (
         svg = `<circle cx="${symbol.width / 2}" cy="${symbol.height / 2}" r="${(symbol.width / 2) - (strokeWidth / 2)}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
       } else if (symbol.type === "polygon") {
         svg = `<polygon points="50,10 90,90 10,90" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
-      } else if (symbol.type === "curve") {
-        // Get curve data from symbol's extended properties
-        const curveData = symbolWithExtended.curveData;
-        console.log('Curve generation - curveData:', curveData);
-        
-        if (curveData) {
-          let pathData = '';
-          
-          // Check if it's new multi-node format or legacy single curve format
-          if ('nodes' in curveData && Array.isArray(curveData.nodes)) {
-            // New multi-node BezierPath format
-            const path = curveData as any; // BezierPath type
-            
-            if (path.nodes.length >= 2) {
-              // Calculate the bounding box to get the offset
-              const allPoints: any[] = [];
-              path.nodes.forEach((node: any) => {
-                allPoints.push(node.point);
-                if (node.leftHandle) allPoints.push(node.leftHandle);
-                if (node.rightHandle) allPoints.push(node.rightHandle);
-              });
-              
-              const minX = Math.min(...allPoints.map(p => p.x));
-              const minY = Math.min(...allPoints.map(p => p.y));
-              
-              // Get padding from symbol bounds
-              const padding = Math.max(strokeWidth * 2, 10);
-              
-              // Start path at first node
-              const firstNode = path.nodes[0];
-              const adjustedFirstPoint = { 
-                x: firstNode.point.x - minX + padding, 
-                y: firstNode.point.y - minY + padding 
-              };
-              pathData = `M ${adjustedFirstPoint.x},${adjustedFirstPoint.y}`;
-              
-              // Add curve segments between adjacent nodes
-              for (let i = 0; i < path.nodes.length - 1; i++) {
-                const currentNode = path.nodes[i];
-                const nextNode = path.nodes[i + 1];
-                
-                const cp1 = currentNode.rightHandle || currentNode.point;
-                const cp2 = nextNode.leftHandle || nextNode.point;
-                
-                const adjustedCp1 = { x: cp1.x - minX + padding, y: cp1.y - minY + padding };
-                const adjustedCp2 = { x: cp2.x - minX + padding, y: cp2.y - minY + padding };
-                const adjustedNextPoint = { x: nextNode.point.x - minX + padding, y: nextNode.point.y - minY + padding };
-                
-                pathData += ` C ${adjustedCp1.x},${adjustedCp1.y} ${adjustedCp2.x},${adjustedCp2.y} ${adjustedNextPoint.x},${adjustedNextPoint.y}`;
-              }
-              
-              // Close path if needed
-              if (path.closed && path.nodes.length > 2) {
-                const lastNode = path.nodes[path.nodes.length - 1];
-                const firstNode = path.nodes[0];
-                
-                const cp1 = lastNode.rightHandle || lastNode.point;
-                const cp2 = firstNode.leftHandle || firstNode.point;
-                
-                const adjustedCp1 = { x: cp1.x - minX + padding, y: cp1.y - minY + padding };
-                const adjustedCp2 = { x: cp2.x - minX + padding, y: cp2.y - minY + padding };
-                const adjustedFirstPoint = { x: firstNode.point.x - minX + padding, y: firstNode.point.y - minY + padding };
-                
-                pathData += ` C ${adjustedCp1.x},${adjustedCp1.y} ${adjustedCp2.x},${adjustedCp2.y} ${adjustedFirstPoint.x},${adjustedFirstPoint.y} Z`;
-              }
-            }
-          } else {
-            // Legacy single curve format - convert to path data
-            const legacyCurve = curveData as any; // BezierCurve type
-            const allPoints = [legacyCurve.start, legacyCurve.cp1, legacyCurve.cp2, legacyCurve.end];
-            const minX = Math.min(...allPoints.map(p => p.x));
-            const minY = Math.min(...allPoints.map(p => p.y));
-            
-            // Get padding from symbol bounds
-            const padding = Math.max(strokeWidth * 2, 10);
-            
-            // Adjust coordinates to be relative to the SVG's origin
-            const adjustedStart = { x: legacyCurve.start.x - minX + padding, y: legacyCurve.start.y - minY + padding };
-            const adjustedCp1 = { x: legacyCurve.cp1.x - minX + padding, y: legacyCurve.cp1.y - minY + padding };
-            const adjustedCp2 = { x: legacyCurve.cp2.x - minX + padding, y: legacyCurve.cp2.y - minY + padding };
-            const adjustedEnd = { x: legacyCurve.end.x - minX + padding, y: legacyCurve.end.y - minY + padding };
-            
-            pathData = `M ${adjustedStart.x},${adjustedStart.y} C ${adjustedCp1.x},${adjustedCp1.y} ${adjustedCp2.x},${adjustedCp2.y} ${adjustedEnd.x},${adjustedEnd.y}`;
-          }
-          
-          console.log('Generated path:', pathData);
-          console.log('SVG dimensions:', symbol.width, 'x', symbol.height);
-          
-          if (pathData) {
-            svg = `<path d="${pathData}" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="${symbolWithExtended.lineCap || 'round'}" />`;
-          } else {
-            // Fallback if path generation failed
-            svg = `<path d="M10,50 Q50,10 90,50" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
-          }
-        } else {
-          console.log('No curveData found, using fallback');
-          // Fallback to default curve if no curve data
-          svg = `<path d="M10,50 Q50,10 90,50" fill="none" stroke="${stroke}" stroke-width="${strokeWidth}" />`;
-        }
       }
-
       const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${symbol.width}" height="${symbol.height}" viewBox="0 0 ${symbol.width} ${symbol.height}">${svg}</svg>`;
       
       console.log('Final SVG for document insertion:', fullSvg);
       
-      // For curves, use higher quality PNG conversion
-      const targetFormat = symbol.type === "curve" ? 'png' : 'png';
-      const quality = symbol.type === "curve" ? 1.0 : 0.9; // Use maximum quality for curves
+      // Use standard PNG conversion  
+      const targetFormat = 'png';
+      const quality = 0.9;
       
-      // Use screenshot-based method for curves to preserve exact visual representation
-      const result = symbol.type === "curve" 
-        ? await svgToImageBlob(fullSvg, symbol.width, symbol.height, targetFormat, quality)
-        : { blob: await svgToBlob(fullSvg, symbol.width, symbol.height, targetFormat, quality, 1), boundaryInfo: null };
+      // Use standard resolution for all shapes
+      const scaleFactor = 1;
+      const renderWidth = symbol.width * scaleFactor;
+      const renderHeight = symbol.height * scaleFactor;
       
-      const blob = result.blob;
+      // Use the reliable svgToBlob function
+      const blob = await svgToBlob(fullSvg, renderWidth, renderHeight, targetFormat, quality, scaleFactor);
       
-      // Log boundary information for debugging
-      if (result.boundaryInfo) {
-        console.log('Boundary detection:', result.boundaryInfo);
-      }
+      // Log conversion info for debugging
+      console.log('Using svgToBlob with dimensions:', renderWidth, 'x', renderHeight, 'scaleFactor:', scaleFactor);
       
       if (sandboxProxy && sandboxProxy.createPositionedImage) {
         try {
@@ -222,7 +121,7 @@ export const useShapeAndUploadLogic = (
   }, [addOnSDKAPI, dispatch, sandboxProxy]);
 
   // Insert new shape (rect/circle/polygon) with unique uuid and inventoryId
-  const handleInsertShape = useCallback(async (type: "rect" | "circle" | "polygon" | "curve") => {
+  const handleInsertShape = useCallback(async (type: "rect" | "circle" | "polygon") => {
     const newSymbol: SymbolType = {
       uuid: uuidv4(),
       inventoryId: uuidv4(),

@@ -38,18 +38,6 @@ export const DEFAULT_INVENTORY: (SymbolType & { tag?: string; isDefault?: boolea
     tag: "Basic",
     isDefault: true,
   },
-  {
-    uuid: "default-curve-uuid",
-    inventoryId: "default-curve",
-    x: 0,
-    y: 0,
-    width: 100,
-    height: 100,
-    type: "curve",
-    inventory: true,
-    tag: "Basic",
-    isDefault: true,
-  },
 ];
 
 export interface SvgConversionParams {
@@ -68,7 +56,6 @@ export const SHAPE_COLORS = {
   RECT: "#90caf9",      // Light blue
   CIRCLE: "#a5d6a7",    // Light green
   POLYGON: "#ffcc80",   // Light orange
-  CURVE: "#ef9a9a",     // Light red/pink
   CLOCK: "#ffe082",     // Light yellow
   INVENTORY: "gold",    // Gold for inventory items
   STROKE: "#333",       // Dark stroke

@@ -1,3 +1,5 @@
+// SVG utility functions
+
 /** options for parsing source as svg/image */
 export type SourceOptions = {
   type?: DOMParserSupportedType;
@@ -153,7 +155,7 @@ export async function svgToBlob(
   }
 }
 
-/** Convert SVG to blob using direct canvas rendering (screenshot-like approach) */
+/** Convert SVG to blob with user-defined document size (simplified approach) */
 export async function svgToImageBlob(
   svgString: string,
   width: number,
@@ -163,164 +165,62 @@ export async function svgToImageBlob(
   showBoundary: boolean = false,
   expandPadding: number = 0
 ): Promise<{ blob: Blob; boundaryInfo: { width: number; height: number; method: string; bounds?: { minX: number; minY: number; maxX: number; maxY: number } } }> {
-  return new Promise((resolve, reject) => {
-    // Create a temporary container
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '-9999px';
-    container.style.width = `${width}px`;
-    container.style.height = `${height}px`;
-    container.innerHTML = svgString;
+  try {
+    const svgElement = await sourceToSvg(svgString);
     
-    document.body.appendChild(container);
+    // Use the provided width/height as the final document size - user controls this via document size controls
+    const finalWidth = width;
+    const finalHeight = height;
     
-    try {
-      const svgElement = container.querySelector('svg');
-      if (!svgElement) {
-        throw new Error('No SVG element found');
-      }
-      
-      // Get actual SVG dimensions from various sources
-      let actualWidth = width;
-      let actualHeight = height;
-      let detectionMethod = 'provided';
-      let bounds: { minX: number; minY: number; maxX: number; maxY: number } | undefined;
-      
-      // Try to get dimensions from viewBox first
-      const viewBox = svgElement.viewBox?.baseVal;
-      if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
-        actualWidth = viewBox.width;
-        actualHeight = viewBox.height;
-        detectionMethod = 'viewBox';
-      } else {
-        // Try width/height attributes
-        const widthAttr = svgElement.getAttribute('width');
-        const heightAttr = svgElement.getAttribute('height');
-        
-        if (widthAttr && heightAttr) {
-          const parsedWidth = parseFloat(widthAttr);
-          const parsedHeight = parseFloat(heightAttr);
-          
-          if (parsedWidth > 0 && parsedHeight > 0) {
-            actualWidth = parsedWidth;
-            actualHeight = parsedHeight;
-            detectionMethod = 'attributes';
-          }
-        }
-      }
-      
-      // Try to get content bounding box as fallback
-      if (actualWidth === width && actualHeight === height) {
-        try {
-          // First try browser's getBBox method
-          const bbox = svgElement.getBBox();
-          if (bbox.width > 0 && bbox.height > 0) {
-            actualWidth = bbox.width + (bbox.x * 2); // Add some padding
-            actualHeight = bbox.height + (bbox.y * 2);
-            detectionMethod = 'getBBox';
-            bounds = { minX: bbox.x, minY: bbox.y, maxX: bbox.x + bbox.width, maxY: bbox.y + bbox.height };
-          }
-        } catch (e) {
-          // If getBBox fails, try manual boundary calculation for curves
-          try {
-            const pathElements = svgElement.querySelectorAll('path');
-            if (pathElements.length > 0) {
-              let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-              
-              pathElements.forEach(path => {
-                const pathData = path.getAttribute('d');
-                if (pathData) {
-                  // Extract all coordinate pairs from path data
-                  const coords = pathData.match(/-?\d+(\.\d+)?/g);
-                  if (coords) {
-                    for (let i = 0; i < coords.length; i += 2) {
-                      if (i + 1 < coords.length) {
-                        const x = parseFloat(coords[i]);
-                        const y = parseFloat(coords[i + 1]);
-                        
-                        minX = Math.min(minX, x);
-                        minY = Math.min(minY, y);
-                        maxX = Math.max(maxX, x);
-                        maxY = Math.max(maxY, y);
-                      }
-                    }
-                  }
-                }
-              });
-              
-              if (minX !== Infinity && maxX !== -Infinity) {
-                const basePadding = 20; // Base padding for stroke width
-                const totalPadding = basePadding + expandPadding;
-                actualWidth = (maxX - minX) + (2 * totalPadding);
-                actualHeight = (maxY - minY) + (2 * totalPadding);
-                detectionMethod = 'manual';
-                bounds = { minX, minY, maxX, maxY };
-                console.log(`Manual boundary calculation: ${minX},${minY} to ${maxX},${maxY}`);
-              }
-            }
-          } catch (manualError) {
-            console.log('Manual boundary calculation failed, using provided dimensions');
-          }
-        }
-      }
-      
-      console.log(`SVG Screenshot: Using dimensions ${actualWidth}x${actualHeight} (original: ${width}x${height}) via ${detectionMethod}`);
-      
-      // Add boundary visualization if requested
-      if (showBoundary && bounds) {
-        const boundaryRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        boundaryRect.setAttribute('x', bounds.minX.toString());
-        boundaryRect.setAttribute('y', bounds.minY.toString());
-        boundaryRect.setAttribute('width', (bounds.maxX - bounds.minX).toString());
-        boundaryRect.setAttribute('height', (bounds.maxY - bounds.minY).toString());
-        boundaryRect.setAttribute('fill', 'none');
-        boundaryRect.setAttribute('stroke', '#ff0000');
-        boundaryRect.setAttribute('stroke-width', '2');
-        boundaryRect.setAttribute('stroke-dasharray', '5,5');
-        svgElement.appendChild(boundaryRect);
-      }
-      
-      // Set SVG to use actual dimensions
-      svgElement.setAttribute('width', actualWidth.toString());
-      svgElement.setAttribute('height', actualHeight.toString());
-      
-      // Create canvas using actual SVG dimensions
-      const canvas = document.createElement('canvas');
-      canvas.width = actualWidth;
-      canvas.height = actualHeight;
-      const ctx = canvas.getContext('2d')!;
-      
-      // Create data URL from SVG
-      const svgData = new XMLSerializer().serializeToString(svgElement);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(svgBlob);
-      
+    // Set SVG dimensions to match document size
+    svgElement.setAttribute('width', finalWidth.toString());
+    svgElement.setAttribute('height', finalHeight.toString());
+    
+    // Set viewBox to match document size (content should already be positioned correctly)
+    svgElement.setAttribute('viewBox', `0 0 ${finalWidth} ${finalHeight}`);
+    
+    // Add boundary visualization if requested (for debugging)
+    if (showBoundary) {
+      const boundaryRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      boundaryRect.setAttribute('x', '2');
+      boundaryRect.setAttribute('y', '2');
+      boundaryRect.setAttribute('width', (finalWidth - 4).toString());
+      boundaryRect.setAttribute('height', (finalHeight - 4).toString());
+      boundaryRect.setAttribute('fill', 'none');
+      boundaryRect.setAttribute('stroke', '#ff0000');
+      boundaryRect.setAttribute('stroke-width', '2');
+      boundaryRect.setAttribute('stroke-dasharray', '5,5');
+      svgElement.appendChild(boundaryRect);
+    }
+    
+    return new Promise((resolve, reject) => {
       const img = new Image();
+      
       img.onload = () => {
         try {
+          const canvas = document.createElement("canvas");
+          canvas.width = finalWidth;
+          canvas.height = finalHeight;
+          const ctx = canvas.getContext("2d")!;
+          
           // Fill background for JPEG
           if (format === 'jpeg') {
             ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, actualWidth, actualHeight);
+            ctx.fillRect(0, 0, finalWidth, finalHeight);
           }
           
-          // Draw the SVG image using actual dimensions (screenshot approach)
-          ctx.drawImage(img, 0, 0, actualWidth, actualHeight);
+          // Draw the SVG image
+          ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
           
-          // Convert canvas to blob
           canvas.toBlob((blob) => {
-            URL.revokeObjectURL(url);
-            document.body.removeChild(container);
-            
             if (blob) {
               resolve({
                 blob,
                 boundaryInfo: {
-                  width: actualWidth,
-                  height: actualHeight,
-                  method: detectionMethod,
-                  bounds
+                  width: finalWidth,
+                  height: finalHeight,
+                  method: 'user-defined',
+                  bounds: { minX: 0, minY: 0, maxX: finalWidth, maxY: finalHeight }
                 }
               });
             } else {
@@ -328,25 +228,23 @@ export async function svgToImageBlob(
             }
           }, `image/${format}`, quality);
         } catch (error) {
-          URL.revokeObjectURL(url);
-          document.body.removeChild(container);
           reject(error);
         }
       };
       
       img.onerror = () => {
-        URL.revokeObjectURL(url);
-        document.body.removeChild(container);
         reject(new Error('Failed to load SVG image'));
       };
       
-      img.src = url;
-      
-    } catch (error) {
-      document.body.removeChild(container);
-      reject(error);
-    }
-  });
+      // Create SVG data URL
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      const encodedSvg = encodeSvgToBase64(svgString);
+      img.src = "data:image/svg+xml;base64," + encodedSvg;
+    });
+  } catch (error) {
+    console.error(`SVG to ${format.toUpperCase()} conversion error:`, error);
+    throw error;
+  }
 }
 
 /** Preview SVG boundaries for user adjustment */

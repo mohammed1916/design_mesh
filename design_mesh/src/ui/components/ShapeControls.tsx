@@ -3,7 +3,7 @@ import { Button } from "@swc-react/button";
 import Tippy from '@tippyjs/react';
 
 interface ShapeControlsProps {
-  onInsertShape: (type: "rect" | "circle" | "polygon" | "curve") => void;
+  onInsertShape: (type: "rect" | "circle" | "polygon") => void;
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -24,11 +24,6 @@ const ShapeControls: React.FC<ShapeControlsProps> = ({ onInsertShape, onUpload }
         <div onClick={() => onInsertShape("polygon")}> 
           <svg width={40} height={40}>
             <polygon points="20,5 35,35 5,35" fill="#ffcc80" stroke="#333" strokeWidth={2} />
-          </svg> 
-        </div>
-        <div onClick={() => onInsertShape("curve")}> 
-          <svg width={40} height={40}>
-            <path d="M 10 30 Q 20,5 30,30" fill="transparent" stroke="#ef9a9a" strokeWidth={2} />
           </svg> 
         </div>
         <div className="shape-upload">

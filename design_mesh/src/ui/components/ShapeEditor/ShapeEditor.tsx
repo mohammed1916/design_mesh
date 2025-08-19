@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SymbolType } from '../res/CanvasSection';
-import { RectEditor, CircleEditor, PolygonEditor, BezierEditor } from './editors';
+import { RectEditor, CircleEditor, PolygonEditor } from './editors';
 import './ShapeEditor.css';
 
 interface ShapeEditorProps {
@@ -26,13 +26,13 @@ const ShapeEditor: React.FC<ShapeEditorProps> = ({
 
   const handleShapeChange = (updatedShape: SymbolType) => {
     // Ensure we preserve all properties, including extended ones
-    console.log('ShapeEditor: Updating shape, curveData:', (updatedShape as any).curveData);
+    console.log('ShapeEditor: Updating shape');
     setCurrentShape(prev => ({ ...prev, ...updatedShape }));
     setHasUnsavedChanges(true);
   };
 
   const handleSave = () => {
-    console.log('ShapeEditor: Saving shape, curveData:', (currentShape as any).curveData);
+    console.log('ShapeEditor: Saving shape');
     onShapeUpdate(currentShape);
     setHasUnsavedChanges(false);
   };
@@ -66,13 +66,6 @@ const ShapeEditor: React.FC<ShapeEditorProps> = ({
       case 'polygon':
         return (
           <PolygonEditor
-            shape={currentShape}
-            onChange={handleShapeChange}
-          />
-        );
-      case 'curve':
-        return (
-          <BezierEditor
             shape={currentShape}
             onChange={handleShapeChange}
           />

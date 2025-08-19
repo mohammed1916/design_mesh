@@ -3,7 +3,7 @@ import { Button } from "@swc-react/button";
 import { motion, AnimatePresence } from "framer-motion";
 import Select from "react-select";
 import { SymbolType } from "./res/CanvasSection";
-import { RectIcon, CircleIcon, PolygonIcon, CurveIcon } from "./ShapeIcons";
+import { RectIcon, CircleIcon, PolygonIcon } from "./ShapeIcons";
 
 interface InventoryProps {
   isOpen: boolean;
@@ -114,13 +114,6 @@ const InventoryComponent: React.FC<InventoryProps> = ({
                       <CircleIcon size="small" />
                     ) : inv.type === "polygon" ? (
                       <PolygonIcon size="small" />
-                    ) : inv.type === "curve" ? (
-                      <CurveIcon 
-                        size="small" 
-                        stroke={(inv as any).stroke}
-                        strokeWidth={(inv as any).strokeWidth}
-                        curveData={(inv as any).curveData}
-                      />
                     ) : inv.type === "image" && inv.src ? (
                       <img src={inv.src} width={30} height={30} alt="Inventory" />
                     ) : null}
