@@ -1,0 +1,17 @@
+.unsplash-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.unsplash-image-card {
+  width: 200px;
+}
+
+.unsplash-image-card img {
+  width: 100%;
+}
+
+.unsplash-attribution {
+  font-size: 12px;
+}

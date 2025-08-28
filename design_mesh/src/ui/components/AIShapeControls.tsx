@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { UnsplashImageGallery } from './UnsplashImageGallery';
 import { Button } from "@swc-react/button";
 import { useAIShape } from '../hooks/useAIShape';
 import { useSelector } from 'react-redux';
@@ -16,6 +17,7 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
   const [endpoint, setEndpoint] = useState('http://localhost:11434/api/generate');
   const [model, setModel] = useState('llama2');
   const [apiKey, setApiKey] = useState('');
+
   // Update endpoint when serviceType changes
   useEffect(() => {
     if (serviceType === 'ollama') {
@@ -25,9 +27,11 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
     }
     // Advanced: keep current endpoint
   }, [serviceType]);
-  const [reasoning, setReasoning] = useState('');
 
+  const [reasoning, setReasoning] = useState('');
   const [result, setResult] = useState<string | null>(null);
+  const [showUnsplash, setShowUnsplash] = useState(false);
+
   const aiShape = useAIShape({
     onGenerated: (res) => {
       setResult(res);
@@ -39,28 +43,42 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
     }
   });
 
+  // Safe property access with defaults
+  const isConnected = aiShape?.isConnected ?? false;
+  const isGenerating = aiShape?.isGenerating ?? false;
+  const connectionStatus = aiShape?.connectionStatus ?? 'disconnected';
+  const lastError = aiShape?.lastError ?? null;
+
   // Test connection on component mount if not connected
   useEffect(() => {
-    if (!aiShape.isConnected && aiShape.connectionStatus === 'disconnected') {
-      aiShape.testConnection();
+    if (!isConnected && connectionStatus === 'disconnected') {
+      aiShape?.testConnection?.();
     }
-  }, []);
+  }, [isConnected, connectionStatus, aiShape]);
 
   const handleConfigUpdate = () => {
-    aiShape.updateAIConfig({
-      endpoint,
-      model,
-      ...(apiKey && { apiKey }),
-    });
-    aiShape.testConnection();
+    if (aiShape?.updateAIConfig) {
+      aiShape.updateAIConfig({
+        endpoint,
+        model,
+        ...(apiKey && { apiKey }),
+      });
+      aiShape.testConnection?.();
+    }
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    const response = await aiShape.generate(prompt);
-    if (response.success && response.result) {
-      setResult(response.result);
-      setPrompt('');
+    if (!prompt.trim() || !aiShape?.generate) return;
+
+    try {
+      const response = await aiShape.generate(prompt);
+      if (response?.success && response.result) {
+        setResult(response.result);
+        setPrompt('');
+      }
+      setShowUnsplash(true); // Show Unsplash images for the prompt
+    } catch (error) {
+      console.error('Generation error:', error);
     }
   };
 
@@ -72,7 +90,7 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
   };
 
   const getStatusText = () => {
-    switch (aiShape.connectionStatus) {
+    switch (connectionStatus) {
       case 'connected': return `Connected (${model})`;
       case 'testing': return 'Testing...';
       case 'error': return 'Connection Error';
@@ -85,11 +103,11 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
       <div className="ai-header">
         <h3>AI Shape Assistant</h3>
         <div className="ai-status">
-          <div 
-            className={`status-indicator status-${aiShape.connectionStatus}`}
+          <div
+            className={`status-indicator status-${connectionStatus}`}
           />
           <span className="status-text">{getStatusText()}</span>
-          <button 
+          <button
             className="config-button"
             onClick={() => setShowConfig(!showConfig)}
             title="Configure AI Service"
@@ -106,7 +124,11 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
             <div className="config-grid">
               <div className="config-field">
                 <label>Service Type:</label>
-                <select value={serviceType} onChange={e => setServiceType(e.target.value as any)} title="Select AI service type">
+                <select
+                  value={serviceType}
+                  onChange={e => setServiceType(e.target.value as any)}
+                  title="Select AI service type"
+                >
                   <option value="ollama">Ollama (Local)</option>
                   <option value="lmstudio">LM Studio</option>
                   <option value="advanced">Advanced (Custom Endpoint)</option>
@@ -147,7 +169,7 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
               </Button>
             </div>
           </div>
-          
+
           <div className="config-help">
             <h5>Quick Setup:</h5>
             <ul>
@@ -166,22 +188,22 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Describe what you want to generate (image, video, etc)...\nExamples:\n• 'Generate a photo of a cat in a field'\n• 'Create a video of a rocket launch'\n• 'Make an abstract painting with blue and yellow'"
+            placeholder="Describe what you want to generate (image, video, etc)...&#10;Examples:&#10;• 'Generate a photo of a cat in a field'&#10;• 'Create a video of a rocket launch'&#10;• 'Make an abstract painting with blue and yellow'"
             rows={3}
-            disabled={!aiShape.isConnected}
+            disabled={!isConnected}
           />
-          <Button 
+          <Button
             size="m"
             onClick={handleGenerate}
-            disabled={!aiShape.isConnected || !prompt.trim() || aiShape.isGenerating}
+            disabled={!isConnected || !prompt.trim() || isGenerating}
           >
-            {aiShape.isGenerating ? '⏳ Generating...' : '✨ Generate'}
+            {isGenerating ? '⏳ Generating...' : '✨ Generate'}
           </Button>
         </div>
 
-        {aiShape.lastError && (
+        {lastError && (
           <div className="ai-error">
-            <span>❌ {aiShape.lastError}</span>
+            <span>❌ {lastError}</span>
           </div>
         )}
 
@@ -196,6 +218,13 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
             ) : (
               <p>{result}</p>
             )}
+          </div>
+        )}
+
+        {showUnsplash && prompt.trim() && (
+          <div className="unsplash-container">
+            <h4>Related Unsplash Images:</h4>
+            <UnsplashImageGallery query={prompt} />
           </div>
         )}
       </div>
@@ -214,7 +243,7 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
               key={index}
               className="example-tag"
               onClick={() => setPrompt(example)}
-              disabled={!aiShape.isConnected}
+              disabled={!isConnected}
             >
               {example}
             </button>

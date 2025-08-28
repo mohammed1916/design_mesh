@@ -30,6 +30,7 @@ export const useAIShape = (options?: UseAIShapeOptions) => {
 
   // Update AI service configuration
   const updateAIConfig = useCallback((config: Partial<AIServiceConfig>) => {
+    if (!config) return;
     aiService.updateConfig(config);
     // Reset connection status when config changes
     setState(prev => ({ ...prev, connectionStatus: 'disconnected', isConnected: false }));
@@ -38,11 +39,11 @@ export const useAIShape = (options?: UseAIShapeOptions) => {
   // Test connection to AI service
   const testConnection = useCallback(async () => {
     setState(prev => ({ ...prev, connectionStatus: 'testing' }));
-    
+
     try {
       const result = await aiService.testConnection();
-      
-      if (result.success) {
+
+      if (result && result.success) {
         setState(prev => ({
           ...prev,
           connectionStatus: 'connected',
@@ -55,9 +56,9 @@ export const useAIShape = (options?: UseAIShapeOptions) => {
           ...prev,
           connectionStatus: 'error',
           isConnected: false,
-          lastError: result.error || 'Connection test failed',
+          lastError: result?.error || 'Connection test failed',
         }));
-        return { success: false, error: result.error };
+        return { success: false, error: result?.error };
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -73,22 +74,33 @@ export const useAIShape = (options?: UseAIShapeOptions) => {
 
   // Generic generate method for text-to-image/video
   const generate = useCallback(async (prompt: string) => {
+    if (!prompt || !prompt.trim()) {
+      const error = 'Prompt is required';
+      setState(prev => ({ ...prev, lastError: error }));
+      options?.onError?.(error);
+      return { success: false, error };
+    }
+
     if (!state.isConnected) {
       const error = 'AI service not connected. Please test connection first.';
       setState(prev => ({ ...prev, lastError: error }));
       options?.onError?.(error);
       return { success: false, error };
     }
+
     setState(prev => ({ ...prev, isGenerating: true, lastError: null }));
+
     try {
       const request: AIGenerationRequest = { prompt };
       const response: AIGenerationResponse = await aiService.generate(request);
+
       setState(prev => ({ ...prev, isGenerating: false }));
-      if (response.success && response.result) {
+
+      if (response && response.success && response.result) {
         options?.onGenerated?.(response.result);
         return { success: true, result: response.result };
       } else {
-        const error = response.error || 'Failed to generate result';
+        const error = response?.error || 'Failed to generate result';
         setState(prev => ({ ...prev, lastError: error }));
         options?.onError?.(error);
         return { success: false, error };

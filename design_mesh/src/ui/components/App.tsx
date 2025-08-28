@@ -27,7 +27,9 @@ import { useInventoryLogic } from "../hooks/useInventoryLogic";
 import { useShapeAndUploadLogic } from "../hooks/useShapeAndUploadLogic";
 import ShapeControls from "./ShapeControls";
 import SvgConversionModal from "./SvgConversionModal";
-import InventoryComponent from "./InventoryComponent"; 
+import InventoryComponent from "./InventoryComponent";
+import StableDiffusionPanel from "./StableDiffusionPanel";
+import "./StableDiffusionPanel.css";
 
 const App = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; sandboxProxy: DocumentSandboxApi }) => {
   return (
@@ -59,6 +61,9 @@ const AppContent = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; s
   const [inventoryOpen, setInventoryOpen] = useState(true);
   const inventoryRef = useRef<HTMLDivElement>(null);
   const prevInventoryLength = useRef(inventory.length);
+
+  // Stable Diffusion state
+  const [stableDiffusionOpen, setStableDiffusionOpen] = useState(false);
 
   // Custom hooks
   const {
@@ -187,7 +192,16 @@ const AppContent = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; s
               <h1 className="shimmer floating">Mesh</h1>
             </div>
             <div className="flex flex-col items-center gap-2">
-              <ThemeSwitcher />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setStableDiffusionOpen(!stableDiffusionOpen)}
+                  className={`ai-toggle-btn ${stableDiffusionOpen ? 'active' : ''}`}
+                  title="Toggle AI Image Generation Panel"
+                >
+                  🤖 AI
+                </button>
+                <ThemeSwitcher />
+              </div>
             </div>
           </div>
           <div className="container">
@@ -240,6 +254,12 @@ const AppContent = ({ addOnSDKAPI, sandboxProxy }: { addOnSDKAPI: AddOnSDKAPI; s
               onRemoveInventory={handleRemoveInventory}
               onInsertFromInventory={handleInsertFromInventoryWithDocument}
               inventoryRef={inventoryRef}
+            />
+
+            {/* Stable Diffusion Panel - New Component */}
+            <StableDiffusionPanel
+              isOpen={stableDiffusionOpen}
+              onToggle={() => setStableDiffusionOpen(!stableDiffusionOpen)}
             />
           </div>
         </div>

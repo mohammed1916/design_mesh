@@ -1,6 +1,7 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
+const DotenvWebpackPlugin = require("dotenv-webpack");
 
 const isEnvProduction = process.env.NODE_ENV === "production";
 
@@ -30,6 +31,12 @@ module.exports = {
         "express-document-sdk": "express-document-sdk"
     },
     plugins: [
+        new DotenvWebpackPlugin({
+            path: path.resolve(__dirname, '.env'),
+            safe: false,
+            systemvars: true,
+            silent: false
+        }),
         new HtmlWebpackPlugin({
             template: "src/index.html",
             scriptLoading: "module",
