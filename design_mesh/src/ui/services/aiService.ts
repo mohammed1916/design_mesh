@@ -1,6 +1,4 @@
-// AI Service for shape generation and modification
-// Supports configurable endpoints with LLaMA as default
-
+// Generic AI Service for text-to-image/video generation
 export interface AIServiceConfig {
   endpoint: string;
   model?: string;
@@ -9,49 +7,21 @@ export interface AIServiceConfig {
   maxTokens?: number;
 }
 
-export interface ShapeGenerationRequest {
+// Generic request for text-to-image/video
+export interface AIGenerationRequest {
   prompt: string;
-  shapeType?: 'rect' | 'circle' | 'polygon';
-  context?: {
-    existingShapes?: Array<{
-      type: string;
-      properties: Record<string, any>;
-    }>;
-    canvasSize?: { width: number; height: number };
-  };
 }
 
-export interface ShapeModificationRequest {
-  prompt: string;
-  targetShape: {
-    type: 'rect' | 'circle' | 'polygon';
-    properties: Record<string, any>;
-  };
-}
-
-export interface AIShapeResponse {
+// Generic response for text-to-image/video
+export interface AIGenerationResponse {
   success: boolean;
-  shape?: {
-    type: 'rect' | 'circle' | 'polygon';
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    fill?: string;
-    stroke?: string;
-    strokeWidth?: number;
-    cornerRadius?: number; // For rectangles
-    // Polygon-specific properties
-    points?: string;
-  };
-  reasoning?: string;
+  result?: string; // URL, base64, or file path to image/video
   error?: string;
 }
 
-// Default LLaMA configuration
 const DEFAULT_CONFIG: AIServiceConfig = {
-  endpoint: 'http://localhost:11434/api/generate', // Ollama default
-  model: 'llama2', // or llama3, codellama, etc.
+  endpoint: 'http://localhost:11434/api/generate',
+  model: 'llama2',
   timeout: 30000,
   maxTokens: 500,
 };
@@ -63,118 +33,24 @@ class AIService {
     this.config = { ...DEFAULT_CONFIG, ...config };
   }
 
+
   // Update configuration at runtime
   updateConfig(config: Partial<AIServiceConfig>): void {
     this.config = { ...this.config, ...config };
   }
 
-  // Generate a new shape based on prompt
-  async generateShape(request: ShapeGenerationRequest): Promise<AIShapeResponse> {
+  // Generic generate method for text-to-image/video
+  async generate(request: AIGenerationRequest): Promise<AIGenerationResponse> {
     try {
-      const prompt = this.buildGenerationPrompt(request);
-      const response = await this.callAI(prompt);
-      return this.parseShapeResponse(response, 'generation');
+      const response = await this.callAI(request.prompt);
+      // For image/video, response should be a URL, base64, or file path
+      return { success: true, result: response };
     } catch (error) {
       return {
         success: false,
-        error: `Shape generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        error: `Generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
-  }
-
-  // Modify existing shape based on prompt
-  async modifyShape(request: ShapeModificationRequest): Promise<AIShapeResponse> {
-    try {
-      const prompt = this.buildModificationPrompt(request);
-      const response = await this.callAI(prompt);
-      return this.parseShapeResponse(response, 'modification', request.targetShape);
-    } catch (error) {
-      return {
-        success: false,
-        error: `Shape modification failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      };
-    }
-  }
-
-  private buildGenerationPrompt(request: ShapeGenerationRequest): string {
-    let prompt = `You are a helpful assistant that creates shapes for a design canvas. 
-
-User request: "${request.prompt}"
-
-Please create a shape based on this request. Consider the following:
-- Available shape types: rectangle (rect), circle, polygon
-- Canvas coordinates start at top-left (0,0)
-- Typical canvas size is 800x600 pixels
-- Use appropriate colors and sizes
-- Provide reasoning for your choices
-
-`;
-
-    if (request.context?.canvasSize) {
-      prompt += `Canvas size: ${request.context.canvasSize.width}x${request.context.canvasSize.height}\n`;
-    }
-
-    if (request.context?.existingShapes?.length) {
-      prompt += `Existing shapes on canvas: ${JSON.stringify(request.context.existingShapes, null, 2)}\n`;
-    }
-
-    prompt += `
-Respond with a JSON object in this exact format:
-{
-  "shape": {
-    "type": "rect|circle|polygon",
-    "x": number,
-    "y": number,
-    "width": number,
-    "height": number,
-    "fill": "#hexcolor",
-    "stroke": "#hexcolor",
-    "strokeWidth": number,
-    "cornerRadius": number (only for rect),
-    "points": "x1,y1 x2,y2 ..." (only for polygon)
-  },
-  "reasoning": "explanation of your choices"
-}
-
-Only respond with valid JSON, no other text.`;
-
-    return prompt;
-  }
-
-  private buildModificationPrompt(request: ShapeModificationRequest): string {
-    const prompt = `You are a helpful assistant that modifies shapes for a design canvas.
-
-Current shape: ${JSON.stringify(request.targetShape, null, 2)}
-
-User request: "${request.prompt}"
-
-Please modify the shape based on this request. You can change:
-- Position (x, y)
-- Size (width, height)
-- Colors (fill, stroke)
-- Style properties (strokeWidth, cornerRadius for rectangles)
-- Shape type (if the request implies a different shape)
-
-Respond with a JSON object in this exact format:
-{
-  "shape": {
-    "type": "rect|circle|polygon",
-    "x": number,
-    "y": number,
-    "width": number,
-    "height": number,
-    "fill": "#hexcolor",
-    "stroke": "#hexcolor",
-    "strokeWidth": number,
-    "cornerRadius": number (only for rect),
-    "points": "x1,y1 x2,y2 ..." (only for polygon)
-  },
-  "reasoning": "explanation of your changes"
-}
-
-Only respond with valid JSON, no other text.`;
-
-    return prompt;
   }
 
   private async callAI(prompt: string): Promise<string> {
@@ -201,7 +77,34 @@ Only respond with valid JSON, no other text.`;
         throw new Error(`AI service returned ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data;
+      try {
+        // Handle streaming/multi-JSON (Ollama, etc.)
+        const lines = rawText.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length > 1) {
+          // Parse each line, collect 'response' fields
+          let lastObj = null;
+          let responses: string[] = [];
+          for (const line of lines) {
+            try {
+              const obj = JSON.parse(line);
+              if (typeof obj.response === 'string') responses.push(obj.response);
+              if (obj.done) lastObj = obj;
+              else lastObj = obj;
+            } catch {}
+          }
+          if (!lastObj) throw new Error('No valid JSON objects found in response. Raw: ' + rawText);
+          // Concatenate all responses
+          const fullResponse = responses.join('');
+          // Attach to lastObj for extraction
+          data = { ...lastObj, response: fullResponse };
+        } else {
+          data = JSON.parse(rawText);
+        }
+      } catch (jsonErr) {
+        throw new Error('AI service returned invalid JSON. Raw response: ' + rawText);
+      }
       return this.extractResponseText(data);
     } catch (error) {
       clearTimeout(timeoutId);
@@ -213,131 +116,26 @@ Only respond with valid JSON, no other text.`;
   }
 
   private buildRequestBody(prompt: string): any {
-    // Ollama/LLaMA format (default)
-    if (this.config.endpoint.includes('ollama') || this.config.endpoint.includes('11434')) {
-      return {
-        model: this.config.model || 'llama2',
-        prompt,
-        stream: false,
-        options: {
-          num_predict: this.config.maxTokens || 500,
-          temperature: 0.1, // Low temperature for consistent JSON output
-        }
-      };
-    }
-
-    // OpenAI-compatible format
-    if (this.config.endpoint.includes('openai') || this.config.endpoint.includes('chat/completions')) {
-      return {
-        model: this.config.model || 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: 'You are a helpful assistant that creates and modifies shapes for design canvases.' },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: this.config.maxTokens || 500,
-        temperature: 0.1,
-      };
-    }
-
-    // Generic format - adjust as needed
+    // Default: just send the prompt for text-to-image/video
     return {
       prompt,
+      model: this.config.model,
       max_tokens: this.config.maxTokens || 500,
       temperature: 0.1,
     };
   }
 
   private extractResponseText(data: any): string {
-    // Ollama format
-    if (data.response) {
-      return data.response;
-    }
-
-    // OpenAI format
-    if (data.choices && data.choices[0]?.message?.content) {
-      return data.choices[0].message.content;
-    }
-
-    // Generic format
-    if (data.text) {
-      return data.text;
-    }
-
-    if (typeof data === 'string') {
-      return data;
-    }
-
-    throw new Error('Unable to extract response text from AI service response');
+    // For text-to-image/video, expect a URL, base64, or file path
+    if (data.result) return data.result;
+    if (data.response) return data.response;
+    if (data.text) return data.text;
+    if (typeof data === 'string') return data;
+    throw new Error('Unable to extract result from AI service response');
   }
 
-  private parseShapeResponse(response: string, operation: 'generation' | 'modification', originalShape?: any): AIShapeResponse {
-    try {
-      // Remove markdown/code block wrappers
-      let clean = response.trim();
-      if (clean.startsWith('```json')) clean = clean.replace(/^```json/, '');
-      if (clean.startsWith('```')) clean = clean.replace(/^```/, '');
-      if (clean.endsWith('```')) clean = clean.replace(/```$/, '');
-      // Find first and last curly braces for JSON
-      const firstBrace = clean.indexOf('{');
-      const lastBrace = clean.lastIndexOf('}');
-      if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-        throw new Error('No valid JSON found in AI response');
-      }
-      const jsonStr = clean.substring(firstBrace, lastBrace + 1);
-      const parsed = JSON.parse(jsonStr);
-      if (!parsed.shape) {
-        throw new Error('AI response missing shape data');
-      }
-      const shape = parsed.shape;
-      // Validate required properties
-      if (!shape.type || !['rect', 'circle', 'polygon'].includes(shape.type)) {
-        throw new Error('Invalid or missing shape type');
-      }
-      // Ensure numeric properties
-      const numericFields = ['x', 'y', 'width', 'height'];
-      for (const field of numericFields) {
-        if (typeof shape[field] !== 'number' || isNaN(shape[field])) {
-          throw new Error(`Invalid ${field} value`);
-        }
-      }
 
-      // Set defaults for optional properties
-      shape.fill = shape.fill || '#3b82f6';
-      shape.stroke = shape.stroke || '#1e40af';
-      shape.strokeWidth = shape.strokeWidth || 2;
 
-      // Validate colors
-      if (!this.isValidColor(shape.fill) || !this.isValidColor(shape.stroke)) {
-        throw new Error('Invalid color format');
-      }
-
-      return {
-        success: true,
-        shape: shape,
-        reasoning: parsed.reasoning || `Shape ${operation} completed successfully`
-      };
-
-    } catch (error) {
-      return {
-        success: false,
-        error: `Failed to parse AI response: ${error instanceof Error ? error.message : 'Unknown parsing error'}`
-      };
-    }
-  }
-
-  private isValidColor(color: string): boolean {
-    // Check for hex colors (#rgb, #rrggbb, #rgba, #rrggbbaa)
-    const hexRegex = /^#([0-9A-Fa-f]{3}){1,2}([0-9A-Fa-f]{2})?$/;
-    if (hexRegex.test(color)) return true;
-
-    // Check for named colors (basic set)
-    const namedColors = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'brown', 'black', 'white', 'gray', 'grey'];
-    if (namedColors.includes(color.toLowerCase())) return true;
-
-    // Check for rgb/rgba
-    const rgbRegex = /^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*[\d.]+)?\s*\)$/;
-    return rgbRegex.test(color);
-  }
 
   // Test connection to AI service
   async testConnection(): Promise<{ success: boolean; error?: string; model?: string }> {

@@ -15,6 +15,11 @@ export type SymbolType = {
   type: "rect" | "circle" | "polygon" | "image" | "historyIcon";
   src?: string;
   inventory?: boolean;
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  cornerRadius?: number;
+  points?: string;
 };
 
 interface CanvasProps {

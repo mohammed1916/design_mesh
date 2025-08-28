@@ -12,22 +12,30 @@ interface AIShapeControlsProps {
 const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) => {
   const [prompt, setPrompt] = useState('');
   const [showConfig, setShowConfig] = useState(false);
+  const [serviceType, setServiceType] = useState<'ollama' | 'lmstudio' | 'advanced'>('ollama');
   const [endpoint, setEndpoint] = useState('http://localhost:11434/api/generate');
   const [model, setModel] = useState('llama2');
   const [apiKey, setApiKey] = useState('');
+  // Update endpoint when serviceType changes
+  useEffect(() => {
+    if (serviceType === 'ollama') {
+      setEndpoint('http://localhost:11434/api/generate');
+    } else if (serviceType === 'lmstudio') {
+      setEndpoint('http://localhost:1234/v1/chat/completions');
+    }
+    // Advanced: keep current endpoint
+  }, [serviceType]);
   const [reasoning, setReasoning] = useState('');
 
-  // Get existing shapes for context
-  const symbols = useSelector((state: RootState) => state.app.symbols);
-  
+  const [result, setResult] = useState<string | null>(null);
   const aiShape = useAIShape({
-    onShapeGenerated: (shape) => {
-      console.log('AI generated shape:', shape);
+    onGenerated: (res) => {
+      setResult(res);
       setReasoning('');
       onShapeGenerated?.();
     },
     onError: (error) => {
-      console.error('AI Shape Error:', error);
+      console.error('AI Generation Error:', error);
     }
   });
 
@@ -48,33 +56,10 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      return;
-    }
-
-    // Provide context about existing shapes
-    const context = {
-      existingShapes: symbols
-        .filter(s => s.type !== 'historyIcon')
-        .map(s => ({
-          type: s.type,
-          properties: {
-            x: s.x,
-            y: s.y,
-            width: s.width,
-            height: s.height,
-          }
-        })),
-      canvasSize: { width: 800, height: 600 },
-    };
-
-    const result = await aiShape.generateShape(prompt, context);
-    if (result.success && result.reasoning) {
-      setReasoning(result.reasoning);
-    }
-    
-    // Clear prompt after successful generation
-    if (result.success) {
+    if (!prompt.trim()) return;
+    const response = await aiShape.generate(prompt);
+    if (response.success && response.result) {
+      setResult(response.result);
       setPrompt('');
     }
   };
@@ -120,12 +105,21 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
             <h4>AI Service Configuration</h4>
             <div className="config-grid">
               <div className="config-field">
+                <label>Service Type:</label>
+                <select value={serviceType} onChange={e => setServiceType(e.target.value as any)} title="Select AI service type">
+                  <option value="ollama">Ollama (Local)</option>
+                  <option value="lmstudio">LM Studio</option>
+                  <option value="advanced">Advanced (Custom Endpoint)</option>
+                </select>
+              </div>
+              <div className="config-field">
                 <label>Endpoint:</label>
                 <input
                   type="text"
                   value={endpoint}
                   onChange={(e) => setEndpoint(e.target.value)}
-                  placeholder="http://localhost:11434/api/generate"
+                  placeholder={serviceType === 'ollama' ? 'http://localhost:11434/api/generate' : serviceType === 'lmstudio' ? 'http://localhost:1234/v1/chat/completions' : 'Enter your API endpoint'}
+                  disabled={serviceType !== 'advanced'}
                 />
               </div>
               <div className="config-field">
@@ -172,7 +166,7 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Describe the shape you want to create or modify...&#10;Examples:&#10;• 'Create a blue rectangle in the center'&#10;• 'Add a red circle in the top-right corner'&#10;• 'Make a green triangle that fits below existing shapes'"
+            placeholder="Describe what you want to generate (image, video, etc)...\nExamples:\n• 'Generate a photo of a cat in a field'\n• 'Create a video of a rocket launch'\n• 'Make an abstract painting with blue and yellow'"
             rows={3}
             disabled={!aiShape.isConnected}
           />
@@ -181,7 +175,7 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
             onClick={handleGenerate}
             disabled={!aiShape.isConnected || !prompt.trim() || aiShape.isGenerating}
           >
-            {aiShape.isGenerating ? '⏳ Generating...' : '✨ Generate Shape'}
+            {aiShape.isGenerating ? '⏳ Generating...' : '✨ Generate'}
           </Button>
         </div>
 
@@ -191,10 +185,17 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
           </div>
         )}
 
-        {reasoning && (
+        {result && (
           <div className="ai-reasoning">
-            <strong>AI Reasoning:</strong>
-            <p>{reasoning}</p>
+            <strong>AI Result:</strong>
+            {/* If result is an image URL/base64, show image. If video, show video. Otherwise, show as text. */}
+            {result.match(/^data:image|^https?:\/\//) ? (
+              <img src={result} alt="AI Generated" className="ai-result-media" />
+            ) : result.match(/^data:video|\.mp4$/) ? (
+              <video src={result} controls className="ai-result-media" />
+            ) : (
+              <p>{result}</p>
+            )}
           </div>
         )}
       </div>
@@ -203,11 +204,11 @@ const AIShapeControls: React.FC<AIShapeControlsProps> = ({ onShapeGenerated }) =
         <h4>Example Prompts:</h4>
         <div className="example-tags">
           {[
-            "Create a blue square in the center",
-            "Add a red circle in the top-left",
-            "Make a green triangle below other shapes",
-            "Create a yellow rectangle twice as wide as it is tall",
-            "Add a purple circle that doesn't overlap existing shapes"
+            "Generate a photo of a cat in a field",
+            "Create a video of a rocket launch",
+            "Make an abstract painting with blue and yellow",
+            "Generate a landscape image with mountains and lake",
+            "Create a cartoon character holding a balloon"
           ].map((example, index) => (
             <button
               key={index}

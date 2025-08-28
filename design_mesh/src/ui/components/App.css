@@ -1,3 +1,8 @@
+/* AIShapeControls result media styles */
+.ai-result-media {
+  max-width: 100%;
+  margin-top: 8px;
+}
 /* File: design_mesh/src/ui/components/App.css */
 .container {
   margin: 40px auto;
